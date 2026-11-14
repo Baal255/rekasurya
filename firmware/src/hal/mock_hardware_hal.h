@@ -15,7 +15,7 @@ namespace rekasurya {
 class MockHardwareHal : public IHardwareHal {
 public:
   static constexpr uint32_t FLASH_SLOTS = 64;
-  static constexpr uint32_t SLOT_BYTES = 256;
+  static constexpr uint32_t SLOT_BYTES = 512;
 
   explicit MockHardwareHal(uint32_t startEpoch = 1794646800U) : currentEpoch_(startEpoch) {
     for (auto& slot : flashStorage_) {

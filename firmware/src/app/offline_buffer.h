@@ -2,6 +2,7 @@
 
 #include "../../include/hal/i_hardware_hal.h"
 #include "../../include/rekasurya_types.h"
+#include <cstddef>
 #include <cstdint>
 #include <vector>
 
@@ -19,7 +20,7 @@ public:
   bool push(IHardwareHal& hal, FlashRingRecord record) {
     record.sequence = nextSeq_++;
     record.crc16 = computeCrc16(reinterpret_cast<const uint8_t*>(&record),
-                                sizeof(FlashRingRecord) - sizeof(uint16_t));
+                                offsetof(FlashRingRecord, crc16));
     if (!hal.writeFlashSlot(head_, reinterpret_cast<const uint8_t*>(&record), sizeof(FlashRingRecord))) {
       return false;
     }
@@ -40,7 +41,7 @@ public:
       return false;
     }
     uint16_t expected = computeCrc16(reinterpret_cast<const uint8_t*>(&outRecord),
-                                     sizeof(FlashRingRecord) - sizeof(uint16_t));
+                                     offsetof(FlashRingRecord, crc16));
     tail_ = (tail_ + 1) % CAPACITY;
     count_--;
     return expected == outRecord.crc16;
