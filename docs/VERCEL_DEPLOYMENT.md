@@ -1,34 +1,44 @@
-# Panduan & Status Deployment Vercel — REKASURYA
+# Panduan & Status Deployment Produksi Vercel — REKASURYA
 
-Dokumen ini mencatat konfigurasi produksi Next.js/SQLite untuk **Vercel** serta status autentikasi dan deployment aktual saat ini.
+Dokumen ini mencatat konfigurasi produksi Next.js/SQLite pada **Vercel** serta detail deployment publik aktual yang telah berjalan dan terverifikasi.
 
 ---
 
-## 1. Konfigurasi Siap-Vercel dalam Repository
+## 1. Informasi Deployment Produksi Terverifikasi
 
-Seluruh penyesuaian yang diperlukan agar Next.js + `better-sqlite3` berjalan baik di lingkungan serverless Vercel telah dikonfigurasi:
+- **URL Produksi Utama**: https://rekasurya.vercel.app/
+- **Alias Produksi Tambahan**:
+  - https://rekasurya-baal5.vercel.app/
+  - https://rekasurya-git-main-baal5.vercel.app/
+- **Proyek Vercel**: `rekasurya` (`prj_ijwS4UeVTYptjxaqin16Z2cizy18`)
+- **Tim / Akun Pemilik**: `Baal` (`team_sU1BXrsYTxgtb74a2WtXhsAx`, slug `baal5`, pengguna `baal255`)
+- **Repository GitHub Terhubung**: `Baal255/rekasurya` (branch produksi: `main`, commit terbuild: `03bc3b0c103e2ad335be3660176140846f91737d`)
+- **Deployment Awal Produksi**: `dpl_B4ynCVTv4PtMFfa5bdnr1apVy3dQ` (status **`READY`**, target **`production`**, region `iad1`)
+- **Akses Publik (`ssoProtection` & `passwordProtection`)**: Dinonaktifkan (`enabled: false`), sehingga URL dapat diakses langsung tanpa halaman login Vercel.
+
+---
+
+## 2. Konfigurasi Proyek & SQLite Serverless
 
 1. **[vercel.json](file:///c:/Users/LENOVO/Documents/Antigravity/Hackathon%20UNS/vercel.json)**
    - `framework`: `"nextjs"`
    - `installCommand`: `"npm install"`
-   - `buildCommand`: `"npm run build"` (secara otomatis menjalankan `prebuild`: `tsx scripts/build-seed.ts` untuk menyusun `seed/rekasurya-seed.db`)
+   - `buildCommand`: `"npm run build"` (otomatis menjalankan `prebuild`: `tsx scripts/build-seed.ts` untuk menyusun `seed/rekasurya-seed.db`)
 2. **[next.config.ts](file:///c:/Users/LENOVO/Documents/Antigravity/Hackathon%20UNS/next.config.ts)**
-   - `serverExternalPackages: ["better-sqlite3"]` menjaga modul native C++ SQLite tidak dibundel keliru oleh Turbopack/Webpack.
-   - `outputFileTracingIncludes: { "/*": ["./seed/rekasurya-seed.db"] }` menyertakan berkas seed SQLite ke dalam seluruh fungsi server agar dapat disalin ke direktori writable (`/tmp`) saat *cold start* di Vercel.
-3. **Verifikasi Build Produksi Lokal**
-   - `npm run build` telah lolos dengan kode keluar `0` pada Next.js `16.3.8` (Turbopack), memvalidasi rute dinamis `/` (`ƒ /`) dan `/devices/[id]` (`ƒ /devices/[id]`), seluruh rute API `ƒ /api/*`, serta 11 halaman statis lainnya.
+   - `serverExternalPackages: ["better-sqlite3"]` menjaga modul native C++ SQLite berjalan pada fungsi Lambda Node.js Vercel.
+   - `outputFileTracingIncludes: { "/*": ["./seed/rekasurya-seed.db"] }` menyertakan berkas seed SQLite agar disalin otomatis ke `/tmp` saat *cold start* serverless.
 
 ---
 
-## 2. Catatan Penting Persistensi SQLite di Serverless
+## 3. Verifikasi Live URL Produksi
 
-- Karena sistem berkas root fungsi Vercel bersifat *read-only*, basis data operasional pada deployment demo disalin dari `seed/rekasurya-seed.db` ke penyimpanan sementara `/tmp` per instansi container.
-- Hal ini sesuai untuk demonstrasi interaktif dan simulasi terisolasi; untuk deployment produksi multi-regu jangka panjang, adaptor penyimpanan disarankan diarahkan ke Postgres / Turso eksternal serta variabel lingkungan `REKASURYA_AI_SERVICE_URL` disetel ke endpoint model AI eksternal.
+Pemeriksaan browser langsung terhadap `https://rekasurya.vercel.app/` membuktikan:
+- `/`, `/console`, `/api/overview`, `/devices/SRG-009`, `/api/devices/SRG-009`, dan `/energy` seluruhnya mengembalikan **HTTP 200 OK**.
+- Logo `/rekasurya-logo-on-dark.png` termuat (`32.378 bytes`, `complete && naturalWidth > 0`), data armada `18` tiang, `4` gangguan aktif, `4` Work Order, serta kalkulasi PP 4/2023 berjalan utuh pada runtime produksi Vercel dengan **0** `console.error`, **0** `pageerror`, dan **0** respons HTTP `>= 400`.
+- Bukti visual produksi tersimpan di [after-14-vercel-production.png](file:///c:/Users/LENOVO/Documents/Antigravity/Hackathon%20UNS/docs/visual-qa/after/after-14-vercel-production.png) dan [after-15-vercel-console.png](file:///c:/Users/LENOVO/Documents/Antigravity/Hackathon%20UNS/docs/visual-qa/after/after-15-vercel-console.png).
 
 ---
 
-## 3. Status Deployment Saat Ini
+## 4. Catatan Persistensi Data Demo di Serverless
 
-- **Pengujian Build Lokal**: **Siap & Lulus (`exit 0`)**, melayani Homepage `/` dan seluruh konsol `/console` secara penuh di lingkungan Node lokal (`http://localhost:3000`).
-- **Status Plugin Vercel (`vercel-plugin`)**: Melalui pemeriksaan akun plugin Antigravity, konektor `vercel-plugin_vercel` **belum terautentikasi** pada sesi pengguna saat ini (memerlukan login pengguna terlebih dahulu melalui kartu plugin Vercel di percakapan).
-- Oleh karena itu, aplikasi **belum dipublikasikan ke domain `*.vercel.app`** secara langsung dalam sesi ini. Begitu akun Vercel terhubung melalui kartu plugin atau CLI terautentikasi, jalankan `vercel --prod` pada direktori root repository (atau hubungkan repository GitHub `Baal255/rekasurya` di Dashboard Vercel dengan Root Directory `.` dan Build Command `npm run build`).
+- Karena sistem berkas root Vercel bersifat *read-only*, basis data operasional pada deployment publik disalin dari `seed/rekasurya-seed.db` ke penyimpanan sementara `/tmp` per instansi Lambda. Untuk operasi produksi multi-regu jangka panjang, adaptor penyimpanan disarankan mengarah ke database eksternal persisten (mis. Postgres/Turso) serta menyetel `REKASURYA_AI_SERVICE_URL` untuk endpoint AI PoC terpisah.

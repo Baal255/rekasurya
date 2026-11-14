@@ -44,3 +44,13 @@ Server dijalankan secara lokal dalam mode produksi (`npx next start -p 3000`, si
 3. **Inspeksi Gangguan (`/alerts`)**: Memilih baris `FLT-2026-0001` (`SRG-009`) mengisi panel inspektor kanan secara lengkap bersama bukti sensor (`LIS3DH 3,18 g`, sel `18650 4,02 V`, `EWMA Zₜ -19,2 W`), SKU `BAT-LFP-256-40`, serta tiket `WO-2026-0001`.
 4. **Suntikan Simulator & Reset Basis Data (`/simulator`)**: Menyuntikkan skenario `F1_PV_SOILING_SHADING` ke `SOL-002` berhasil melahirkan `WO-2026-0005` (`MNT-PV-CLN`) dengan residu `Zₜ -94,6 W`; tombol **Reset Seluruh Armada ke Snapshot Awal** memulihkan armada kembali ke `18 tiang`, `4 gangguan aktif`, dan `4 Work Order` serta mencatat jejak hash SHA-256 `DEMO_DATABASE_RESET`.
 5. **Log Konsol & Jaringan**: Tercatat **0** `console.error`, **0** `pageerror`, dan **0** respons HTTP `>= 400` sepanjang seluruh pemeriksaan pada build final.
+
+---
+
+## 5. Verifikasi Deployment Publik Vercel (`https://rekasurya.vercel.app`)
+
+Deployment produksi `dpl_B4ynCVTv4PtMFfa5bdnr1apVy3dQ` pada proyek `prj_ijwS4UeVTYptjxaqin16Z2cizy18` (`READY`, target `production`, `ssoProtection: false`) diverifikasi langsung melalui browser terhadap domain publik **https://rekasurya.vercel.app/**:
+
+- `/`, `/console`, `/api/overview`, `/devices/SRG-009`, `/api/devices/SRG-009`, dan `/energy` mengembalikan **HTTP 200 OK** tanpa dinding login maupun error native `better-sqlite3`.
+- Aset `/rekasurya-logo-on-dark.png` termuat (`naturalWidth > 0`) dan seluruh data SQLite awal (`18` tiang, `4` gangguan, `4` Work Order, `Rp 486.678.400/thn`) tampil lengkap dengan **0** `console.error`, **0** `pageerror`, dan **0** respons HTTP `>= 400`.
+- Bukti visual: [after-14-vercel-production.png](file:///c:/Users/LENOVO/Documents/Antigravity/Hackathon%20UNS/docs/visual-qa/after/after-14-vercel-production.png) dan [after-15-vercel-console.png](file:///c:/Users/LENOVO/Documents/Antigravity/Hackathon%20UNS/docs/visual-qa/after/after-15-vercel-console.png).
