@@ -1,0 +1,67 @@
+@import "tailwindcss";
+
+:root {
+  --bg-canvas: #0b0f17;
+  --bg-panel: #111827;
+  --bg-inset: #161f30;
+  --border-hairline: #1e293b;
+  --border-strong: #334155;
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --accent-sky: #0ea5e9;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  background-color: var(--bg-canvas);
+  color: var(--text-primary);
+  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-mono,
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+.scada-panel {
+  background-color: var(--bg-panel);
+  border: 1px solid var(--border-hairline);
+  border-radius: 6px;
+}
+
+.scada-inset {
+  background-color: var(--bg-inset);
+  border: 1px solid var(--border-hairline);
+  border-radius: 4px;
+}
+
+.scada-grid-bg {
+  background-image:
+    linear-gradient(to right, rgba(30, 41, 59, 0.35) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(30, 41, 59, 0.35) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0b0f17;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}

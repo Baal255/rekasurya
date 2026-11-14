@@ -1,0 +1,43 @@
+name: REKASURYA CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  verify-web-and-domain:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript typecheck
+        run: npm run typecheck
+
+      - name: Run Vitest domain & API integration tests
+        run: npm test
+
+      - name: Build seed DB & Next.js production bundle
+        run: npm run build
+
+  verify-firmware-host:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Compile and execute C++17 firmware host simulation tests
+        run: |
+          g++ -std=c++17 -Wall -Wextra -Ifirmware/include -Ifirmware/src firmware/test/test_firmware_host.cpp -o test_firmware_host
+          ./test_firmware_host

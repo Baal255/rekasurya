@@ -1,0 +1,36 @@
+# Dependensi & build artifacts
+node_modules/
+.next/
+out/
+dist/
+build/
+.vercel/
+.pio/
+
+# Basis data lokal runtime (seed pra-isi ikut disertakan untuk cold start serverless)
+data/
+*.db-wal
+*.db-shm
+
+# Environment & rahasia
+.env
+.env*.local
+*.pem
+*.key
+
+# Berkas identitas pribadi tim (jangan unggah ke repository publik)
+CV_*.pdf
+KTM_*.jpeg
+KTM_*.jpg
+TTD_*.jpeg
+TTD_*.jpg
+
+# Log & temp
+*.log
+npm-debug.log*
+tsconfig.tsbuildinfo
+next-env.d.ts
+/test_firmware_host
+/test_firmware_host.exe
+.DS_Store
+Thumbs.db
