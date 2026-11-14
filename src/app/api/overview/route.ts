@@ -4,7 +4,12 @@ import { handleRouteError, jsonOk } from "@/lib/api-utils";
 import { getDb } from "@/lib/db";
 import { calculateEnergyAndSavings } from "@/lib/energy/calculator";
 import { AI_CONTRACT_VERSION } from "@/lib/ai/contract";
-import type { CorridorRecord, DeviceRecord, WorkOrderRecord } from "@/lib/types";
+import type {
+  CorridorRecord,
+  DeviceRecord,
+  FaultEventRecord,
+  WorkOrderRecord,
+} from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -49,6 +54,48 @@ export async function GET() {
       )
       .all() as Array<WorkOrderRecord & { pole_label: string; corridor_name: string; kabupaten: string }>;
 
+    const faultEvents = db
+      .prepare(
+        `SELECT fe.*,
+                d.pole_label,
+                d.corridor_id,
+                c.name AS corridor_name,
+                c.kabupaten,
+                d.status AS device_status,
+                (
+                  SELECT w.id
+                  FROM work_orders w
+                  WHERE w.fault_event_id = fe.id
+                  ORDER BY w.created_at DESC
+                  LIMIT 1
+                ) AS linked_work_order_id,
+                (
+                  SELECT w.status
+                  FROM work_orders w
+                  WHERE w.fault_event_id = fe.id
+                  ORDER BY w.created_at DESC
+                  LIMIT 1
+                ) AS work_order_status
+         FROM fault_events fe
+         JOIN devices d ON fe.device_id = d.id
+         JOIN corridors c ON d.corridor_id = c.id
+         ORDER BY
+           CASE fe.status WHEN 'ACTIVE' THEN 1 WHEN 'ACKNOWLEDGED' THEN 2 ELSE 3 END,
+           CASE fe.severity WHEN 'CRITICAL' THEN 1 WHEN 'HIGH' THEN 2 WHEN 'MEDIUM' THEN 3 ELSE 4 END,
+           fe.detected_at DESC`
+      )
+      .all() as Array<
+      FaultEventRecord & {
+        pole_label: string;
+        corridor_id: string;
+        corridor_name: string;
+        kabupaten: string;
+        device_status: string;
+        linked_work_order_id: string | null;
+        work_order_status: string | null;
+      }
+    >;
+
     const openCitizenCountRow = db
       .prepare(`SELECT COUNT(*) AS cnt FROM citizen_reports WHERE status != 'Resolved'`)
       .get() as { cnt: number };
@@ -83,6 +130,7 @@ export async function GET() {
         corridors,
         devices,
         openWorkOrders,
+        faultEvents,
         auditIntegrity,
       },
     });

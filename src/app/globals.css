@@ -1,27 +1,79 @@
 @import "tailwindcss";
 
+/* ==========================================================================
+   REKASURYA Design System — Berbasis Identitas Logo Resmi REKASURYA
+   Palet Brand:
+   - Primary Navy  : #062D5B (Deep: #041E3E, Hover: #093B75)
+   - Primary Amber : #FEB124 (Hover: #E59A10, Light: #FFD585, Tint: #FFF8E7)
+   - Netral Kerja  : Canvas #F4F6F9, Surface #FFFFFF, Border #DCE3EC, Ink #0B192C
+   ========================================================================== */
+
 :root {
-  --bg-canvas: #0b0f17;
-  --bg-panel: #111827;
-  --bg-inset: #161f30;
-  --border-hairline: #1e293b;
-  --border-strong: #334155;
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
-  --accent-sky: #0ea5e9;
+  color-scheme: light;
+
+  /* Identitas Brand (Single Source of Truth: REKASURYA LOGO.png) */
+  --brand-navy: #062d5b;
+  --brand-navy-hover: #093b75;
+  --brand-navy-deep: #041e3e;
+  --brand-navy-soft: #ebf1f8;
+  --brand-navy-tint: #f3f6fa;
+  --brand-amber: #feb124;
+  --brand-amber-hover: #e59a10;
+  --brand-amber-light: #ffd585;
+  --brand-amber-tint: #fff8e7;
+
+  /* Permukaan Area Kerja Padat Data */
+  --bg-app: #f4f6f9;
+  --bg-surface: #ffffff;
+  --bg-subtle: #edf1f6;
+  --bg-muted: #f8fafc;
+  --border-default: #dce3ec;
+  --border-strong: #c4d0de;
+
+  /* Hirarki Tipografi */
+  --text-primary: #0b192c;
+  --text-secondary: #334155;
+  --text-muted: #5b6b7f;
+
+  /* Aksi Primer */
+  --action-primary: #062d5b;
+  --action-primary-hover: #093b75;
+
+  /* Warna Semantik Operasional (Terpisah dari Aksen Brand) */
+  --status-normal: #15803d;
+  --status-warning: #b45309;
+  --status-critical: #b91c1c;
+  --status-tamper: #9d174d;
+  --status-offline: #475569;
+
+  /* Kedalaman Halus Tanpa Glow */
+  --sh-1: 0 1px 2px rgb(6 45 91 / 0.04), 0 1px 3px rgb(6 45 91 / 0.05);
+  --sh-2: 0 2px 4px rgb(6 45 91 / 0.05), 0 10px 24px -10px rgb(6 45 91 / 0.12);
+  --sh-3: 0 4px 10px rgb(6 45 91 / 0.08), 0 22px 48px -16px rgb(4 30 62 / 0.22);
+  --sh-slab: inset 0 1px 0 rgb(255 255 255 / 0.08), 0 28px 72px -20px rgb(4 30 62 / 0.45);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 * {
   box-sizing: border-box;
 }
 
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+  text-rendering: optimizeLegibility;
+}
+
 html,
 body {
-  background-color: var(--bg-canvas);
+  background-color: var(--bg-app);
   color: var(--text-primary);
-  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+  font-family: var(--font-sans), ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  font-feature-settings: "cv11", "ss01";
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .font-mono,
@@ -29,39 +81,153 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-.scada-panel {
-  background-color: var(--bg-panel);
-  border: 1px solid var(--border-hairline);
-  border-radius: 6px;
+/* Permukaan Operasional Console */
+.ops-card {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
+  box-shadow: var(--sh-1);
 }
 
-.scada-inset {
-  background-color: var(--bg-inset);
-  border: 1px solid var(--border-hairline);
-  border-radius: 4px;
+.ops-panel {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
 }
 
-.scada-grid-bg {
-  background-image:
-    linear-gradient(to right, rgba(30, 41, 59, 0.35) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(30, 41, 59, 0.35) 1px, transparent 1px);
-  background-size: 32px 32px;
+.ops-inset {
+  background-color: var(--bg-muted);
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+}
+
+/* Tombol Aksi */
+.ops-btn-primary {
+  background-color: var(--brand-navy);
+  color: #ffffff;
+  border: 1px solid var(--brand-navy);
+  border-radius: 7px;
+  font-weight: 600;
+  transition: background-color 150ms ease, border-color 150ms ease, opacity 150ms ease;
+}
+
+.ops-btn-primary:hover:not(:disabled) {
+  background-color: var(--brand-navy-hover);
+  border-color: var(--brand-navy-hover);
+}
+
+.ops-btn-amber {
+  background-color: var(--brand-amber);
+  color: var(--brand-navy);
+  border: 1px solid var(--brand-amber-hover);
+  border-radius: 7px;
+  font-weight: 700;
+  transition: background-color 150ms ease, opacity 150ms ease;
+}
+
+.ops-btn-amber:hover:not(:disabled) {
+  background-color: var(--brand-amber-hover);
+  color: #041e3e;
+}
+
+.ops-btn-secondary {
+  background-color: var(--bg-surface);
+  color: var(--brand-navy);
+  border: 1px solid var(--border-default);
+  border-radius: 7px;
+  font-weight: 500;
+  transition: border-color 150ms ease, background-color 150ms ease;
+}
+
+.ops-btn-secondary:hover:not(:disabled) {
+  border-color: var(--border-strong);
+  background-color: var(--bg-subtle);
+}
+
+.ops-input {
+  background-color: var(--bg-surface);
+  color: var(--text-primary);
+  border: 1px solid var(--border-default);
+  border-radius: 7px;
+}
+
+.ops-input:focus {
+  outline: none;
+  border-color: var(--brand-navy);
+  box-shadow: 0 0 0 3px rgb(254 177 36 / 0.28);
+}
+
+/* Utilitas Homepage Berlapis (Terinspirasi Pola Layered Slabs, Warna Resmi REKASURYA) */
+.slab-shadow {
+  box-shadow: var(--sh-slab);
+}
+
+.glass-navy {
+  background: rgb(6 45 91 / 0.78);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  backdrop-filter: blur(18px) saturate(150%);
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.14),
+    0 12px 36px -12px rgb(4 30 62 / 0.55);
+}
+
+.glass-light {
+  background: rgb(255 255 255 / 0.85);
+  -webkit-backdrop-filter: blur(18px) saturate(170%);
+  backdrop-filter: blur(18px) saturate(170%);
+  box-shadow:
+    inset 0 0 0 1px rgb(6 45 91 / 0.08),
+    var(--sh-2);
+}
+
+.grain-subtle {
+  position: relative;
+  isolation: isolate;
+}
+
+.grain-subtle::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.045;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.lift-tile {
+  transition: transform 420ms var(--ease-out-expo), box-shadow 420ms var(--ease-out-expo);
+}
+
+@media (hover: hover) {
+  .lift-tile:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--sh-3);
+  }
+}
+
+.landing-rail {
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: 1rem;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+.landing-rail::-webkit-scrollbar {
+  display: none;
 }
 
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #0b0f17;
+  background: var(--bg-subtle);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #334155;
+  background: var(--border-strong);
   border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #475569;
 }

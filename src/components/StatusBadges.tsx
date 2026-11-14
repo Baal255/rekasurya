@@ -8,38 +8,33 @@ import type {
 
 export function DeviceStatusBadge({ status }: { status: DeviceStatus | string }) {
   const styles: Record<string, string> = {
-    NORMAL: "bg-emerald-950/80 text-emerald-300 border-emerald-700/60",
-    WARNING_EWMA: "bg-amber-950/80 text-amber-300 border-amber-600/70",
-    FAULT: "bg-red-950/80 text-red-300 border-red-700/70",
-    TAMPER_CRITICAL: "bg-fuchsia-950/80 text-fuchsia-300 border-fuchsia-600/80",
-    OFFLINE: "bg-slate-900 text-slate-300 border-slate-700",
+    NORMAL: "bg-[#ECFDF5] text-[#14532D] border-[#A7F3D0]",
+    WARNING_EWMA: "bg-[#FFFBEB] text-[#92400E] border-[#FCD34D]",
+    FAULT: "bg-[#FEF2F2] text-[#991B1B] border-[#FCA5A5]",
+    TAMPER_CRITICAL: "bg-[#FDF2F8] text-[#9D174D] border-[#FBCFE8]",
+    OFFLINE: "bg-[#F1F5F9] text-[#475569] border-[#CBD5E1]",
+  };
+  const dots: Record<string, string> = {
+    NORMAL: "bg-[#15803D]",
+    WARNING_EWMA: "bg-[#B45309]",
+    FAULT: "bg-[#B91C1C]",
+    TAMPER_CRITICAL: "bg-[#9D174D]",
+    OFFLINE: "bg-[#64748B]",
   };
   const labels: Record<string, string> = {
-    NORMAL: "NORMAL",
-    WARNING_EWMA: "PERINGATAN EWMA",
-    FAULT: "GANGGUAN AKTIF",
-    TAMPER_CRITICAL: "SABOTASE KRITIS",
-    OFFLINE: "OFFLINE",
+    NORMAL: "Normal",
+    WARNING_EWMA: "Peringatan EWMA",
+    FAULT: "Gangguan Aktif",
+    TAMPER_CRITICAL: "Sabotase Kritis",
+    OFFLINE: "Offline",
   };
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-2 py-0.5 text-[11px] font-mono font-semibold rounded border tracking-wide ${
+      className={`inline-flex items-center gap-1.5 px-2 py-0.5 text-[11px] font-medium rounded-md border whitespace-nowrap ${
         styles[status] ?? styles.OFFLINE
       }`}
     >
-      <span
-        className={`h-1.5 w-1.5 rounded-full ${
-          status === "NORMAL"
-            ? "bg-emerald-400"
-            : status === "WARNING_EWMA"
-            ? "bg-amber-400"
-            : status === "FAULT"
-            ? "bg-red-400"
-            : status === "TAMPER_CRITICAL"
-            ? "bg-fuchsia-400"
-            : "bg-slate-400"
-        }`}
-      />
+      <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${dots[status] ?? dots.OFFLINE}`} />
       {labels[status] ?? status}
     </span>
   );
@@ -54,23 +49,23 @@ export function FaultFamilyBadge({
 }) {
   if (family === "NONE" || !family) {
     return (
-      <span className="inline-flex px-2 py-0.5 text-[11px] font-mono rounded border bg-slate-900/70 text-slate-400 border-slate-800">
-        OK · Tidak Ada Gangguan
+      <span className="inline-flex items-center px-2 py-0.5 text-[11px] font-mono rounded-md border bg-[#F4F6F9] text-[#5B6B7F] border-[#DCE3EC] whitespace-nowrap">
+        OK · Nominal
       </span>
     );
   }
   const styles: Record<string, string> = {
-    F1: "bg-amber-950/70 text-amber-200 border-amber-700/60",
-    F2: "bg-orange-950/70 text-orange-200 border-orange-700/60",
-    F3: "bg-red-950/70 text-red-200 border-red-700/60",
-    F4: "bg-rose-950/70 text-rose-200 border-rose-700/60",
-    F5: "bg-red-950/90 text-red-100 border-red-500/70",
-    F6: "bg-fuchsia-950/80 text-fuchsia-200 border-fuchsia-600/80",
+    F1: "bg-[#FFFBEB] text-[#92400E] border-[#FDE68A]",
+    F2: "bg-[#FFF7ED] text-[#9A3412] border-[#FED7AA]",
+    F3: "bg-[#FEF2F2] text-[#991B1B] border-[#FECACA]",
+    F4: "bg-[#FEF2F2] text-[#991B1B] border-[#FECACA]",
+    F5: "bg-[#FEE2E2] text-[#7F1D1D] border-[#FCA5A5]",
+    F6: "bg-[#FDF2F8] text-[#9D174D] border-[#FBCFE8]",
   };
   return (
     <span
-      className={`inline-flex items-center px-2 py-0.5 text-[11px] font-mono font-medium rounded border ${
-        styles[family] ?? "bg-slate-900 text-slate-300 border-slate-700"
+      className={`inline-flex items-center px-2 py-0.5 text-[11px] font-mono font-medium rounded-md border whitespace-nowrap ${
+        styles[family] ?? "bg-[#F1F5F9] text-[#475569] border-[#CBD5E1]"
       }`}
       title={subCode}
     >
@@ -81,22 +76,22 @@ export function FaultFamilyBadge({
 
 export function WorkOrderStatusBadge({ status }: { status: WorkOrderStatus | string }) {
   const styles: Record<string, string> = {
-    OPEN: "bg-red-950/70 text-red-200 border-red-700/60",
-    ASSIGNED: "bg-sky-950/70 text-sky-200 border-sky-700/60",
-    IN_PROGRESS: "bg-amber-950/70 text-amber-200 border-amber-600/70",
-    VERIFIED: "bg-emerald-950/70 text-emerald-200 border-emerald-700/60",
-    CLOSED: "bg-slate-900 text-slate-400 border-slate-700",
+    OPEN: "bg-[#FEF2F2] text-[#991B1B] border-[#FECACA]",
+    ASSIGNED: "bg-[#EBF1F8] text-[#062D5B] border-[#C4D0DE]",
+    IN_PROGRESS: "bg-[#FFF8E7] text-[#92400E] border-[#FEB124]",
+    VERIFIED: "bg-[#ECFDF5] text-[#14532D] border-[#A7F3D0]",
+    CLOSED: "bg-[#F1F5F9] text-[#475569] border-[#CBD5E1]",
   };
   const labels: Record<string, string> = {
-    OPEN: "OPEN · Menunggu Regu",
-    ASSIGNED: "ASSIGNED · Regu Siap",
-    IN_PROGRESS: "IN_PROGRESS · Check-In",
-    VERIFIED: "VERIFIED · Lolos Telemetri",
-    CLOSED: "CLOSED · Selesai",
+    OPEN: "Belum Ditangani",
+    ASSIGNED: "Regu Ditugaskan",
+    IN_PROGRESS: "Dalam Pengerjaan",
+    VERIFIED: "Terverifikasi Telemetri",
+    CLOSED: "Selesai",
   };
   return (
     <span
-      className={`inline-flex px-2 py-0.5 text-[11px] font-mono font-medium rounded border ${
+      className={`inline-flex items-center px-2 py-0.5 text-[11px] font-medium rounded-md border whitespace-nowrap ${
         styles[status] ?? styles.OPEN
       }`}
     >
@@ -107,27 +102,37 @@ export function WorkOrderStatusBadge({ status }: { status: WorkOrderStatus | str
 
 export function PriorityBadge({ priority }: { priority: string }) {
   const styles: Record<string, string> = {
-    DARURAT: "bg-fuchsia-950 text-fuchsia-200 border-fuchsia-500/80",
-    TINGGI: "bg-red-950 text-red-200 border-red-600/70",
-    SEDANG: "bg-amber-950 text-amber-200 border-amber-600/70",
-    RENDAH: "bg-slate-900 text-slate-300 border-slate-700",
+    DARURAT: "bg-[#9D174D] text-white border-[#9D174D]",
+    CRITICAL: "bg-[#B91C1C] text-white border-[#B91C1C]",
+    TINGGI: "bg-[#FEE2E2] text-[#991B1B] border-[#FCA5A5]",
+    HIGH: "bg-[#FEE2E2] text-[#991B1B] border-[#FCA5A5]",
+    SEDANG: "bg-[#FFF8E7] text-[#92400E] border-[#FCD34D]",
+    MEDIUM: "bg-[#FFF8E7] text-[#92400E] border-[#FCD34D]",
+    RENDAH: "bg-[#F1F5F9] text-[#475569] border-[#CBD5E1]",
+    LOW: "bg-[#F1F5F9] text-[#475569] border-[#CBD5E1]",
+  };
+  const labels: Record<string, string> = {
+    CRITICAL: "KRITIS",
+    HIGH: "TINGGI",
+    MEDIUM: "SEDANG",
+    LOW: "RENDAH",
   };
   return (
     <span
-      className={`inline-flex px-1.5 py-0.5 text-[10px] font-mono font-semibold rounded border tracking-wider ${
+      className={`inline-flex items-center px-1.5 py-0.5 text-[10px] font-mono font-semibold rounded border tracking-wide whitespace-nowrap ${
         styles[priority] ?? styles.SEDANG
       }`}
     >
-      {priority}
+      {labels[priority] ?? priority}
     </span>
   );
 }
 
 export function SpatialVerdictBadge({ verdict }: { verdict: string }) {
   const styles: Record<string, string> = {
-    NORMAL: "bg-slate-900 text-slate-300 border-slate-700",
-    CUACA_SERUAS: "bg-sky-950/80 text-sky-200 border-sky-600/70",
-    ANOMALI_LOKAL: "bg-amber-950/80 text-amber-200 border-amber-600/70",
+    NORMAL: "bg-[#F8FAFC] text-[#475569] border-[#DCE3EC]",
+    CUACA_SERUAS: "bg-[#EBF1F8] text-[#062D5B] border-[#C4D0DE]",
+    ANOMALI_LOKAL: "bg-[#FFF8E7] text-[#92400E] border-[#FEB124]",
   };
   const labels: Record<string, string> = {
     NORMAL: "Korelasi Normal",
@@ -136,7 +141,7 @@ export function SpatialVerdictBadge({ verdict }: { verdict: string }) {
   };
   return (
     <span
-      className={`inline-flex px-2 py-0.5 text-[11px] font-mono rounded border ${
+      className={`inline-flex items-center px-2 py-0.5 text-[11px] font-medium rounded-md border whitespace-nowrap ${
         styles[verdict] ?? styles.NORMAL
       }`}
     >
@@ -147,14 +152,14 @@ export function SpatialVerdictBadge({ verdict }: { verdict: string }) {
 
 export function CitizenStatusBadge({ status }: { status: CitizenReportStatus | string }) {
   const styles: Record<string, string> = {
-    Open: "bg-red-950/70 text-red-200 border-red-700/60",
-    Responded: "bg-sky-950/70 text-sky-200 border-sky-700/60",
-    Process: "bg-amber-950/70 text-amber-200 border-amber-600/70",
-    Resolved: "bg-emerald-950/70 text-emerald-200 border-emerald-700/60",
+    Open: "bg-[#FEF2F2] text-[#991B1B] border-[#FECACA]",
+    Responded: "bg-[#EBF1F8] text-[#062D5B] border-[#C4D0DE]",
+    Process: "bg-[#FFF8E7] text-[#92400E] border-[#FEB124]",
+    Resolved: "bg-[#ECFDF5] text-[#14532D] border-[#A7F3D0]",
   };
   return (
     <span
-      className={`inline-flex px-2 py-0.5 text-[11px] font-mono font-medium rounded border ${
+      className={`inline-flex items-center px-2 py-0.5 text-[11px] font-medium rounded-md border whitespace-nowrap ${
         styles[status] ?? styles.Open
       }`}
     >
