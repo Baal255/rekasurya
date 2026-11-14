@@ -437,7 +437,7 @@ export function HeroAndConvergence({
           {/* Panel Penjelasan & Sorotan Contoh Dashboard (Tinggi stabil agar tidak melompat) */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
             <div className="lg:col-span-5 ops-card p-5 sm:p-6 bg-white flex flex-col justify-between min-h-[260px]">
-              <div className="space-y-3">
+              <div key={activeStep.key} className="space-y-3 animate-motion-in">
                 <div className="text-[12px] font-semibold text-[#B45309]">
                   Tahap terpilih: {activeStep.num}. {activeStep.title}
                 </div>
@@ -472,9 +472,9 @@ export function HeroAndConvergence({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 my-4">
                 <div
-                  className={`rounded-lg border p-3 transition-colors ${
+                  className={`rounded-lg border p-3 transition-all duration-300 ${
                     activeStep.key === "pantau"
-                      ? "bg-[#FFF8E7] border-[#FEB124] ring-2 ring-[#FEB124]/40"
+                      ? "bg-[#FFF8E7] border-[#FEB124] ring-2 ring-[#FEB124]/50 shadow-sm"
                       : "bg-[#F8FAFC] border-[#DCE3EC] opacity-75"
                   }`}
                 >
@@ -487,9 +487,9 @@ export function HeroAndConvergence({
                 </div>
 
                 <div
-                  className={`rounded-lg border p-3 transition-colors ${
+                  className={`rounded-lg border p-3 transition-all duration-300 ${
                     activeStep.key === "kenali"
-                      ? "bg-[#FFF8E7] border-[#FEB124] ring-2 ring-[#FEB124]/40"
+                      ? "bg-[#FFF8E7] border-[#FEB124] ring-2 ring-[#FEB124]/50 shadow-sm"
                       : "bg-[#F8FAFC] border-[#DCE3EC] opacity-75"
                   }`}
                 >
@@ -502,9 +502,9 @@ export function HeroAndConvergence({
                 </div>
 
                 <div
-                  className={`rounded-lg border p-3 transition-colors ${
+                  className={`rounded-lg border p-3 transition-all duration-300 ${
                     activeStep.key === "siapkan"
-                      ? "bg-[#FFF8E7] border-[#FEB124] ring-2 ring-[#FEB124]/40"
+                      ? "bg-[#FFF8E7] border-[#FEB124] ring-2 ring-[#FEB124]/50 shadow-sm"
                       : "bg-[#F8FAFC] border-[#DCE3EC] opacity-75"
                   }`}
                 >
@@ -517,9 +517,9 @@ export function HeroAndConvergence({
                 </div>
 
                 <div
-                  className={`rounded-lg border p-3 transition-colors ${
+                  className={`rounded-lg border p-3 transition-all duration-300 ${
                     activeStep.key === "cek"
-                      ? "bg-[#FFF8E7] border-[#FEB124] ring-2 ring-[#FEB124]/40"
+                      ? "bg-[#FFF8E7] border-[#FEB124] ring-2 ring-[#FEB124]/50 shadow-sm"
                       : "bg-[#F8FAFC] border-[#DCE3EC] opacity-75"
                   }`}
                 >

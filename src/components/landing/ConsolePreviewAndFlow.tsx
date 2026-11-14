@@ -280,9 +280,9 @@ export function ConsolePreviewAndFlow({
                       <Link
                         key={dev.id}
                         href={`/devices/${dev.id}`}
-                        className={`px-3 py-2.5 flex items-center justify-between gap-2 transition-colors text-[12px] min-h-[58px] ${
+                        className={`px-3 py-2.5 flex items-center justify-between gap-2 transition-all duration-300 text-[12px] min-h-[58px] ${
                           dev.isSimulatedTarget
-                            ? "bg-[#FFF8E7] ring-1 ring-inset ring-[#FEB124]"
+                            ? "bg-[#FFF8E7] ring-2 ring-inset ring-[#FEB124] animate-motion-in"
                             : "hover:bg-[#F3F6FA]"
                         }`}
                       >
@@ -299,13 +299,18 @@ export function ConsolePreviewAndFlow({
                                 ({dev.fault_family})
                               </span>
                             )}
+                            {dev.isSimulatedTarget && (
+                              <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-semibold bg-[#FEB124] text-[#062D5B]">
+                                Target Simulasi
+                              </span>
+                            )}
                           </div>
                           <div className="text-[11px] text-[#5B6B7F] truncate">
                             {dev.pole_label} · {dev.kabupaten}
                           </div>
                         </div>
                         <div className="flex items-center gap-2.5 shrink-0">
-                          <span className="hidden sm:inline font-mono text-[11px] text-[#334155] tabular-nums">
+                          <span className={`hidden sm:inline font-mono text-[11px] tabular-nums transition-colors duration-300 ${dev.isSimulatedTarget ? "text-[#B45309] font-bold" : "text-[#334155]"}`}>
                             Baterai {formatNum(dev.soc_pct, 0)}%
                           </span>
                           <DeviceStatusBadge status={dev.status} />
@@ -328,7 +333,10 @@ export function ConsolePreviewAndFlow({
               }`}
             >
               {summaryTask ? (
-                <>
+                <div
+                  key={batteryFaultSimulated ? "simulated" : "initial"}
+                  className="space-y-3.5 animate-motion-in flex-1 flex flex-col justify-between"
+                >
                   <div className="space-y-3.5">
                     <div className="flex items-start justify-between gap-2">
                       <div>
@@ -404,7 +412,7 @@ export function ConsolePreviewAndFlow({
                       </Link>
                     </div>
                   </div>
-                </>
+                </div>
               ) : (
                 <p className="text-[13.5px] text-[#5B6B7F]">
                   Semua tugas teknisi pada data simulasi sedang dalam status selesai. Gunakan tombol{" "}

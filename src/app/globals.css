@@ -200,6 +200,21 @@ body {
   transition: transform 420ms var(--ease-out-expo), box-shadow 420ms var(--ease-out-expo);
 }
 
+@keyframes slide-fade-in {
+  from {
+    opacity: 0.5;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-motion-in {
+  animation: slide-fade-in 300ms var(--ease-out-expo) forwards;
+}
+
 @media (hover: hover) {
   .lift-tile:hover {
     transform: translateY(-3px);
