@@ -1,14 +1,16 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useOperationalRole } from "@/components/AppShell";
+import { SearchIcon } from "@/components/Icons";
 import {
   CitizenStatusBadge,
   DeviceStatusBadge,
   PriorityBadge,
   WorkOrderStatusBadge,
 } from "@/components/StatusBadges";
+import { EmptyState, PageHeader, PageSkeleton } from "@/components/UiPrimitives";
 import type { EnrichedCitizenReport } from "@/lib/domain/citizen-reports";
 import type { EnrichedWorkOrder } from "@/lib/domain/work-orders";
 import { formatIdr, formatWibTime } from "@/lib/format";
@@ -22,13 +24,25 @@ const CORRIDOR_COORDS = [
   { label: "Sragen — Ringroad Utara Sragen", lat: -7.4201, lng: 111.0155 },
 ];
 
+const WO_STATUS_TABS = [
+  { id: "ALL", label: "Semua Status" },
+  { id: "OPEN", label: "Belum Ditangani" },
+  { id: "ASSIGNED", label: "Ditugaskan" },
+  { id: "IN_PROGRESS", label: "Dalam Pengerjaan" },
+  { id: "VERIFIED", label: "Terverifikasi" },
+  { id: "CLOSED", label: "Selesai" },
+];
+
 export default function WorkOrdersAndCitizenPage() {
   const { getHeaders, demoResetTick } = useOperationalRole();
   const [activeTab, setActiveTab] = useState<"WO" | "ULAS">("WO");
 
   // State Work Order
   const [workOrders, setWorkOrders] = useState<EnrichedWorkOrder[]>([]);
+  const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("ALL");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedWoId, setSelectedWoId] = useState<string | null>(null);
   const [notesDraft, setNotesDraft] = useState<Record<string, string>>({});
   const [woFeedback, setWoFeedback] = useState<{
     woId: string;
@@ -43,40 +57,51 @@ export default function WorkOrdersAndCitizenPage() {
   const [newWoDevice, setNewWoDevice] = useState("SOL-001");
   const [newWoTitle, setNewWoTitle] = useState("");
   const [newWoSummary, setNewWoSummary] = useState("");
-  const [newWoPriority, setNewWoPriority] = useState<"DARURAT" | "TINGGI" | "SEDANG" | "RENDAH">("SEDANG");
+  const [newWoPriority, setNewWoPriority] = useState<"DARURAT" | "TINGGI" | "SEDANG" | "RENDAH">(
+    "SEDANG"
+  );
 
-  // State Citizen Reports (Simulasi ULAS)
+  // State Citizen Reports (Simulasi Alur ULAS)
   const [reports, setReports] = useState<EnrichedCitizenReport[]>([]);
   const [trackId, setTrackId] = useState("");
   const [trackPhoneLast4, setTrackPhoneLast4] = useState("");
-  const [citChannel, setCitChannel] = useState<"Web ULAS" | "Lapor Mas Wali (WA)" | "Solo Destination" | "SP4N LAPOR!">("Web ULAS");
+  const [citChannel, setCitChannel] = useState<
+    "Web ULAS" | "Lapor Mas Wali (WA)" | "Solo Destination" | "SP4N LAPOR!"
+  >("Web ULAS");
   const [citAlias, setCitAlias] = useState("Warga Simulasi Solo Raya");
   const [citPhone4, setCitPhone4] = useState("5512");
   const [citCorridorIdx, setCitCorridorIdx] = useState(1);
-  const [citDesc, setCitDesc] = useState("Lampu tiang PJU di tepi jalan padam dan berkedip sejak pukul 19.30 WIB.");
+  const [citDesc, setCitDesc] = useState(
+    "Lampu tiang PJU di tepi jalan padam dan berkedip sejak pukul 19.30 WIB."
+  );
   const [citFollowUp, setCitFollowUp] = useState("");
   const [citSubmitResult, setCitSubmitResult] = useState<string | null>(null);
   const [busyCit, setBusyCit] = useState(false);
 
   const loadAll = useCallback(async () => {
-    const [woRes, citRes, devRes] = await Promise.all([
-      fetch(`/api/work-orders?status=${encodeURIComponent(statusFilter)}`, { cache: "no-store" }),
-      fetch("/api/citizen-reports", { cache: "no-store" }),
-      fetch("/api/devices", { cache: "no-store" }),
-    ]);
-    const [woJson, citJson, devJson] = await Promise.all([
-      woRes.json(),
-      citRes.json(),
-      devRes.json(),
-    ]);
-    if (woJson.ok) {
-      setWorkOrders(woJson.data.workOrders);
-    }
-    if (citJson.ok) {
-      setReports(citJson.data.reports);
-    }
-    if (devJson.ok) {
-      setDevicesList(devJson.data.devices);
+    setLoading(true);
+    try {
+      const [woRes, citRes, devRes] = await Promise.all([
+        fetch(`/api/work-orders?status=${encodeURIComponent(statusFilter)}`, { cache: "no-store" }),
+        fetch("/api/citizen-reports", { cache: "no-store" }),
+        fetch("/api/devices", { cache: "no-store" }),
+      ]);
+      const [woJson, citJson, devJson] = await Promise.all([
+        woRes.json(),
+        citRes.json(),
+        devRes.json(),
+      ]);
+      if (woJson.ok) {
+        setWorkOrders(woJson.data.workOrders);
+      }
+      if (citJson.ok) {
+        setReports(citJson.data.reports);
+      }
+      if (devJson.ok) {
+        setDevicesList(devJson.data.devices);
+      }
+    } finally {
+      setLoading(false);
     }
   }, [statusFilter]);
 
@@ -85,11 +110,30 @@ export default function WorkOrdersAndCitizenPage() {
     if (sp.get("tab") === "aduan") {
       setActiveTab("ULAS");
     }
+    const highlight = sp.get("highlight");
+    const devParam = sp.get("device");
+    if (highlight) {
+      setSelectedWoId(highlight);
+    } else if (devParam) {
+      setSearchQuery(devParam);
+    }
   }, []);
 
   useEffect(() => {
     loadAll();
   }, [loadAll, demoResetTick]);
+
+  const filteredWorkOrders = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return workOrders;
+    return workOrders.filter((w) => {
+      const hay = `${w.id} ${w.device_id} ${w.pole_label} ${w.title} ${w.corridor_name} ${w.kabupaten} ${w.assigned_team}`.toLowerCase();
+      return hay.includes(q);
+    });
+  }, [workOrders, searchQuery]);
+
+  const activeWo =
+    filteredWorkOrders.find((w) => w.id === selectedWoId) ?? filteredWorkOrders[0] ?? null;
 
   const handleWoAction = async (
     wo: EnrichedWorkOrder,
@@ -120,9 +164,9 @@ export default function WorkOrdersAndCitizenPage() {
           ok: true,
           message:
             action === "CHECKIN"
-              ? `Check-in GPS tercatat (${wo.lat.toFixed(4)}, ${wo.lng.toFixed(4)}). Mode pemeliharaan buka panel aktif 90 menit.`
+              ? `Check-in demo tercatat pada koordinat tiang (${wo.lat.toFixed(4)}, ${wo.lng.toFixed(4)}). Mode servis demo aktif 90 menit.`
               : action === "VERIFY"
-              ? `Pemulihan telemetri ${wo.device_id} terverifikasi NORMAL. Tiket ${wo.id} berstatus VERIFIED.`
+              ? `Telemetri simulasi ${wo.device_id} memenuhi kriteria demo. Tiket ${wo.id} berstatus VERIFIED.`
               : `Status ${wo.id} diperbarui menjadi ${json.data.workOrder.status}.`,
         });
         await loadAll();
@@ -146,7 +190,7 @@ export default function WorkOrdersAndCitizenPage() {
         setWoFeedback({
           woId: wo.id,
           ok: true,
-          message: `Telemetri pemulihan NORMAL diterima dari ${wo.device_id}. Sekarang klik "Verifikasi Pemulihan Telemetri" untuk menutup siklus.`,
+          message: `Telemetri pemulihan NORMAL diterima dari ${wo.device_id}. Klik "Verifikasi Pemulihan Telemetri" untuk menyelesaikan siklus.`,
         });
         await loadAll();
       } else {
@@ -175,10 +219,11 @@ export default function WorkOrdersAndCitizenPage() {
       setShowCreateWo(false);
       setNewWoTitle("");
       setNewWoSummary("");
+      setSelectedWoId(json.data.workOrder.id);
       setWoFeedback({
         woId: json.data.workOrder.id,
         ok: true,
-        message: `Work Order ${json.data.workOrder.id} berhasil dibuat untuk ${newWoDevice}.`,
+        message: `Work Order ${json.data.workOrder.id} berhasil diterbitkan untuk ${newWoDevice}.`,
       });
       await loadAll();
     }
@@ -223,8 +268,8 @@ export default function WorkOrdersAndCitizenPage() {
       } else {
         const r = json.data;
         setCitSubmitResult(
-          `Aduan demo tercatat dengan nomor ${r.report.id}. Pencocokan spasial Haversine mengaitkan ke tiang ${
-            r.nearestDevice?.id ?? "Belum ditemukan"
+          `Aduan demo tercatat (${r.report.id}). Pencocokan spasial Haversine mengaitkan ke tiang ${
+            r.nearestDevice?.id ?? "—"
           } (${r.distanceMeters ?? "—"} m) & Work Order ${r.linkedWorkOrderId ?? "—"}.`
         );
         await loadAll();
@@ -234,86 +279,97 @@ export default function WorkOrdersAndCitizenPage() {
     }
   };
 
-  return (
-    <div className="space-y-5">
-      {/* Header & Switcher Tab */}
-      <div className="scada-panel p-4 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-lg font-bold text-slate-100">
-            Manajemen Work Order, Suku Cadang &amp; Kanal Aduan Warga
-          </h1>
-          <p className="text-xs text-slate-400">
-            Menjembatani hasil diagnosis F1–F6 serta laporan warga ke tindakan teknisi sky-lift yang terverifikasi telemetri.
-          </p>
-        </div>
+  if (loading && workOrders.length === 0 && reports.length === 0) {
+    return <PageSkeleton rows={6} />;
+  }
 
-        <div className="flex items-center gap-2 bg-[#0B0F17] p-1 rounded border border-[#1E293B]">
-          <button
-            type="button"
-            onClick={() => setActiveTab("WO")}
-            className={`px-3 py-1.5 text-xs font-semibold rounded cursor-pointer transition-colors ${
-              activeTab === "WO"
-                ? "bg-[#0EA5E9] text-slate-950"
-                : "text-slate-300 hover:text-white"
-            }`}
-          >
-            Antrean Work Order ({workOrders.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("ULAS")}
-            className={`px-3 py-1.5 text-xs font-semibold rounded cursor-pointer transition-colors ${
-              activeTab === "ULAS"
-                ? "bg-[#0EA5E9] text-slate-950"
-                : "text-slate-300 hover:text-white"
-            }`}
-          >
-            Kanal Aduan Warga · Alur ULAS ({reports.length})
-          </button>
-        </div>
-      </div>
+  return (
+    <div className="space-y-4">
+      <PageHeader
+        title="Operasi Pemeliharaan Work Order & Aduan Warga"
+        subtitle="Simulasi antrean regu sky-lift, daftar suku cadang, check-in pada koordinat tiang, dan verifikasi pemulihan dengan telemetri demo."
+        actions={
+          <div className="inline-flex items-center rounded-md border border-[#DCE3EC] bg-[#FFFFFF] p-0.5 text-[12px] font-medium">
+            <button
+              type="button"
+              onClick={() => setActiveTab("WO")}
+              className={`px-3 py-1.5 rounded cursor-pointer transition-colors ${
+                activeTab === "WO"
+                  ? "bg-[#062D5B] text-white"
+                  : "text-[#5B6B7F] hover:text-[#0B192C]"
+              }`}
+            >
+              Antrean Work Order ({workOrders.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("ULAS")}
+              className={`px-3 py-1.5 rounded cursor-pointer transition-colors ${
+                activeTab === "ULAS"
+                  ? "bg-[#062D5B] text-white"
+                  : "text-[#5B6B7F] hover:text-[#0B192C]"
+              }`}
+            >
+              Aduan Warga · Simulasi ULAS ({reports.length})
+            </button>
+          </div>
+        }
+      />
 
       {activeTab === "WO" ? (
         <div className="space-y-4">
-          {/* Bar Kontrol Work Order */}
-          <div className="scada-panel p-3.5 flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-1.5">
-              {["ALL", "OPEN", "ASSIGNED", "IN_PROGRESS", "VERIFIED", "CLOSED"].map((st) => (
-                <button
-                  key={st}
-                  type="button"
-                  onClick={() => setStatusFilter(st)}
-                  className={`px-2.5 py-1 text-[11px] font-mono rounded border cursor-pointer ${
-                    statusFilter === st
-                      ? "bg-[#0EA5E9]/20 border-[#0EA5E9] text-sky-200"
-                      : "bg-[#0B0F17] border-[#1E293B] text-slate-400 hover:text-slate-200"
-                  }`}
-                >
-                  {st === "ALL" ? "Semua Status" : st}
-                </button>
-              ))}
+          {/* Toolbar Filter & Pencarian Gaya Linear */}
+          <div className="ops-card p-3 space-y-2.5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center gap-1.5">
+                {WO_STATUS_TABS.map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setStatusFilter(tab.id)}
+                    className={`px-2.5 py-1 text-[12px] font-medium rounded-md border cursor-pointer transition-colors ${
+                      statusFilter === tab.id
+                        ? "bg-[#EBF1F8] border-[#062D5B] text-[#062D5B] font-semibold"
+                        : "bg-[#FFFFFF] border-[#DCE3EC] text-[#5B6B7F] hover:text-[#0B192C]"
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCreateWo((v) => !v)}
+                className="ops-btn-primary px-3 py-1.5 text-[12px] cursor-pointer"
+              >
+                {showCreateWo ? "Tutup Form" : "+ Buat Work Order"}
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={() => setShowCreateWo((v) => !v)}
-              className="px-3 py-1.5 text-xs font-semibold rounded border border-[#334155] bg-[#161F30] text-slate-100 hover:border-[#0EA5E9] cursor-pointer"
-            >
-              {showCreateWo ? "Tutup Form" : "+ Buat Work Order Manual"}
-            </button>
+
+            <div className="relative max-w-md">
+              <SearchIcon className="w-4 h-4 text-[#5B6B7F] absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Cari nomor WO, ID tiang, jalan, atau regu..."
+                className="ops-input w-full pl-9 pr-3 py-1.5 text-[12px]"
+              />
+            </div>
           </div>
 
           {showCreateWo && (
-            <form onSubmit={handleCreateManualWo} className="scada-panel p-4 space-y-3">
-              <div className="text-sm font-semibold text-slate-100">
+            <form onSubmit={handleCreateManualWo} className="ops-card p-4 space-y-3">
+              <div className="text-[14px] font-semibold text-[#0B192C]">
                 Terbitkan Work Order Pemeliharaan Preventif / Inspeksi
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-[12px]">
                 <div>
-                  <label className="block text-slate-400 mb-1">Target Tiang</label>
+                  <label className="block text-[#5B6B7F] mb-1">Target Tiang</label>
                   <select
                     value={newWoDevice}
                     onChange={(e) => setNewWoDevice(e.target.value)}
-                    className="w-full bg-[#0B0F17] border border-[#334155] rounded px-2.5 py-1.5 font-mono text-slate-100"
+                    className="ops-input w-full px-2.5 py-1.5 font-mono"
                   >
                     {devicesList.map((d) => (
                       <option key={d.id} value={d.id}>
@@ -323,11 +379,11 @@ export default function WorkOrdersAndCitizenPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-slate-400 mb-1">Prioritas</label>
+                  <label className="block text-[#5B6B7F] mb-1">Prioritas</label>
                   <select
                     value={newWoPriority}
                     onChange={(e) => setNewWoPriority(e.target.value as typeof newWoPriority)}
-                    className="w-full bg-[#0B0F17] border border-[#334155] rounded px-2.5 py-1.5 font-mono text-slate-100"
+                    className="ops-input w-full px-2.5 py-1.5 font-mono"
                   >
                     <option value="RENDAH">RENDAH</option>
                     <option value="SEDANG">SEDANG</option>
@@ -336,19 +392,19 @@ export default function WorkOrdersAndCitizenPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-slate-400 mb-1">Judul Pekerjaan</label>
+                  <label className="block text-[#5B6B7F] mb-1">Judul Pekerjaan</label>
                   <input
                     required
                     minLength={3}
                     value={newWoTitle}
                     onChange={(e) => setNewWoTitle(e.target.value)}
                     placeholder="Contoh: Inspeksi Konektor PV Rutin"
-                    className="w-full bg-[#0B0F17] border border-[#334155] rounded px-2.5 py-1.5 text-slate-100"
+                    className="ops-input w-full px-2.5 py-1.5"
                   />
                 </div>
               </div>
-              <div className="text-xs">
-                <label className="block text-slate-400 mb-1">Ringkasan Tugas &amp; Instruksi</label>
+              <div className="text-[12px]">
+                <label className="block text-[#5B6B7F] mb-1">Ringkasan Tugas &amp; Instruksi</label>
                 <textarea
                   required
                   minLength={5}
@@ -356,184 +412,264 @@ export default function WorkOrdersAndCitizenPage() {
                   value={newWoSummary}
                   onChange={(e) => setNewWoSummary(e.target.value)}
                   placeholder="Jelaskan komponen yang harus diperiksa..."
-                  className="w-full bg-[#0B0F17] border border-[#334155] rounded px-2.5 py-1.5 text-slate-100"
+                  className="ops-input w-full px-2.5 py-1.5"
                 />
               </div>
-              <button
-                type="submit"
-                className="px-4 py-1.5 text-xs font-semibold rounded bg-[#0EA5E9] text-slate-950 hover:bg-sky-400 cursor-pointer"
-              >
+              <button type="submit" className="ops-btn-primary px-4 py-1.5 text-[12px] cursor-pointer">
                 Simpan Work Order
               </button>
             </form>
           )}
 
-          {/* Daftar Kartu Work Order */}
-          <div className="space-y-3">
-            {workOrders.map((wo) => {
-              const parts = JSON.parse(wo.parts_checklist_json) as SparePartRecommendation[];
-              const totalPartsIdr = parts.reduce((acc, p) => acc + p.estimatedIdr * p.quantity, 0);
-              const isBusy = busyWoId === wo.id;
-              const notesVal = notesDraft[wo.id] ?? wo.technician_notes;
-              const maintActive =
-                Boolean(wo.maintenance_until) &&
-                new Date(wo.maintenance_until!).getTime() > Date.now();
+          {/* Split Panel Linear Style: Tabel Daftar Padat + Detail Eksekusi Teknisi */}
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 items-start min-w-0">
+            <div className="xl:col-span-7 min-w-0 ops-card overflow-hidden">
+              {filteredWorkOrders.length === 0 ? (
+                <div className="p-4">
+                  <EmptyState
+                    title="Tidak ada Work Order pada filter ini"
+                    description="Ubah filter status atau pencarian di atas untuk melihat tiket lain."
+                  />
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse text-[12px]">
+                    <thead>
+                      <tr className="bg-[#F8FAFC] border-b border-[#DCE3EC] text-[11px] font-semibold uppercase tracking-wider text-[#5B6B7F]">
+                        <th className="py-2.5 px-3">Tiket &amp; Tiang</th>
+                        <th className="py-2.5 px-3">Tugas Pemeliharaan</th>
+                        <th className="py-2.5 px-3">Prioritas</th>
+                        <th className="py-2.5 px-3">Status</th>
+                        <th className="py-2.5 px-3">Batas SLA</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#DCE3EC]">
+                      {filteredWorkOrders.map((wo) => {
+                        const isSelected = activeWo?.id === wo.id;
+                        return (
+                          <tr
+                            key={wo.id}
+                            onClick={() => setSelectedWoId(wo.id)}
+                            className={`cursor-pointer transition-colors hover:bg-[#F8FAFC] ${
+                              isSelected ? "bg-[#EBF1F8]/80" : "bg-[#FFFFFF]"
+                            }`}
+                          >
+                            <td className="py-2.5 px-3 align-top whitespace-nowrap">
+                              <div className="font-mono font-semibold text-[#0B192C]">{wo.id}</div>
+                              <div className="font-mono text-[11px] text-[#062D5B]">
+                                {wo.device_id}
+                              </div>
+                            </td>
+                            <td className="py-2.5 px-3 align-top">
+                              <div className="font-semibold text-[#0B192C]">{wo.title}</div>
+                              <div className="text-[11px] text-[#5B6B7F]">
+                                {wo.pole_label} · {wo.truck_unit}
+                              </div>
+                            </td>
+                            <td className="py-2.5 px-3 align-top">
+                              <PriorityBadge priority={wo.priority} />
+                            </td>
+                            <td className="py-2.5 px-3 align-top">
+                              <WorkOrderStatusBadge status={wo.status} />
+                            </td>
+                            <td className="py-2.5 px-3 align-top font-mono text-[11px] text-[#5B6B7F] whitespace-nowrap tabular-nums">
+                              {formatWibTime(wo.sla_deadline)}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
 
-              return (
-                <div key={wo.id} className="scada-panel p-4 space-y-3">
-                  <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[#1E293B] pb-3">
-                    <div className="space-y-1">
-                      <div className="flex flex-wrap items-center gap-2 font-mono text-xs">
-                        <PriorityBadge priority={wo.priority} />
-                        <span className="text-sm font-bold text-slate-100">{wo.id}</span>
-                        <Link
-                          href={`/devices/${wo.device_id}`}
-                          className="text-sky-300 hover:underline font-semibold"
-                        >
-                          Tiang {wo.device_id} ({wo.pole_label})
-                        </Link>
-                        <DeviceStatusBadge status={wo.device_status} />
-                      </div>
-                      <h2 className="text-base font-semibold text-slate-100">{wo.title}</h2>
-                      <div className="text-xs text-slate-400">
-                        {wo.corridor_name} · {wo.kabupaten} · Regu:{" "}
-                        <span className="text-slate-200">{wo.assigned_team}</span> ({wo.truck_unit})
-                        {wo.citizen_report_id && (
-                          <span className="ml-2 font-mono text-amber-300">
-                            · Aduan Terkait: {wo.citizen_report_id}
-                          </span>
-                        )}
-                      </div>
-                    </div>
+            {/* Detail Panel Work Order Aktif */}
+            <aside className="xl:col-span-5 min-w-0 ops-card p-4 space-y-4 xl:sticky xl:top-20">
+              {activeWo ? (
+                (() => {
+                  const parts = JSON.parse(
+                    activeWo.parts_checklist_json
+                  ) as SparePartRecommendation[];
+                  const totalPartsIdr = parts.reduce(
+                    (acc, p) => acc + p.estimatedIdr * p.quantity,
+                    0
+                  );
+                  const isBusy = busyWoId === activeWo.id;
+                  const notesVal = notesDraft[activeWo.id] ?? activeWo.technician_notes;
+                  const maintActive =
+                    Boolean(activeWo.maintenance_until) &&
+                    new Date(activeWo.maintenance_until!).getTime() > Date.now();
 
-                    <div className="flex flex-col items-end gap-1">
-                      <WorkOrderStatusBadge status={wo.status} />
-                      <div className="text-[11px] font-mono text-slate-400">
-                        SLA: {formatWibTime(wo.sla_deadline)}
-                      </div>
-                      {maintActive && (
-                        <div className="text-[11px] font-mono text-emerald-300">
-                          Otorisasi Buka Panel aktif s/d {formatWibTime(wo.maintenance_until)}
+                  return (
+                    <>
+                      <div className="border-b border-[#DCE3EC] pb-3 space-y-2">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 font-mono text-[12px]">
+                            <span className="font-bold text-[#0B192C]">{activeWo.id}</span>
+                            <PriorityBadge priority={activeWo.priority} />
+                          </div>
+                          <WorkOrderStatusBadge status={activeWo.status} />
                         </div>
-                      )}
-                    </div>
-                  </div>
 
-                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-                    <div className="lg:col-span-7 space-y-2.5">
-                      <p className="text-xs text-slate-300 leading-relaxed">
-                        {wo.diagnosis_summary}
-                      </p>
+                        <h2 className="text-[16px] font-semibold text-[#0B192C]">
+                          {activeWo.title}
+                        </h2>
+
+                        <div className="flex flex-wrap items-center gap-2 text-[12px] text-[#334155]">
+                          <Link
+                            href={`/devices/${activeWo.device_id}`}
+                            className="font-mono font-semibold text-[#062D5B] hover:underline"
+                          >
+                            Tiang {activeWo.device_id}
+                          </Link>
+                          <span>· {activeWo.pole_label}</span>
+                          <DeviceStatusBadge status={activeWo.device_status} />
+                        </div>
+
+                        <div className="text-[11px] font-mono text-[#5B6B7F] space-y-0.5">
+                          <div>
+                            Regu: {activeWo.assigned_team} ({activeWo.truck_unit})
+                          </div>
+                          <div>SLA: {formatWibTime(activeWo.sla_deadline)}</div>
+                          {activeWo.citizen_report_id && (
+                            <div className="text-[#B45309] font-semibold">
+                              Terkait Aduan Warga: {activeWo.citizen_report_id}
+                            </div>
+                          )}
+                          {maintActive && (
+                            <div className="text-[#15803D] font-semibold">
+                              Otorisasi Buka Panel aktif s/d{" "}
+                              {formatWibTime(activeWo.maintenance_until)}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5 text-[12px]">
+                        <div className="text-[11px] font-semibold uppercase tracking-wider text-[#5B6B7F]">
+                          Ringkasan Diagnosis &amp; Alur Kerja
+                        </div>
+                        <p className="text-[#0B192C] leading-relaxed">
+                          {activeWo.diagnosis_summary}
+                        </p>
+                      </div>
 
                       {/* Daftar Periksa Suku Cadang */}
-                      <div className="scada-inset p-3">
-                        <div className="flex items-center justify-between text-[11px] font-mono text-slate-400 mb-2">
-                          <span>DAFTAR PERIKSA SUKU CADANG (ESTIMASI SEBELUM BERANGKAT)</span>
-                          <span className="text-sky-300 font-semibold">
-                            Total Estimasi: {formatIdr(totalPartsIdr)}
+                      <div className="ops-inset p-3 space-y-2">
+                        <div className="flex items-center justify-between text-[11px] font-semibold uppercase text-[#5B6B7F]">
+                          <span>Checklist Suku Cadang Sky-Lift</span>
+                          <span className="font-mono text-[#062D5B] tabular-nums">
+                            {formatIdr(totalPartsIdr)}
                           </span>
                         </div>
                         {parts.length === 0 ? (
-                          <div className="text-xs text-slate-400">
-                            Hanya inspeksi &amp; pembersihan (tanpa penggantian komponen berat).
+                          <div className="text-[12px] text-[#5B6B7F]">
+                            Hanya inspeksi &amp; pembersihan tanpa komponen elektris berat.
                           </div>
                         ) : (
-                          <ul className="space-y-1.5 text-xs">
+                          <ul className="space-y-1.5 text-[12px]">
                             {parts.map((part) => (
                               <li
                                 key={part.sku}
-                                className="flex flex-wrap items-center justify-between gap-2 bg-[#0B0F17] px-2.5 py-1.5 rounded border border-[#1E293B]"
+                                className="bg-[#FFFFFF] px-2.5 py-2 rounded border border-[#DCE3EC] flex items-start justify-between gap-2"
                               >
                                 <div>
-                                  <span className="font-mono text-sky-300 mr-2">{part.sku}</span>
-                                  <span className="text-slate-100 font-medium">{part.name}</span>
-                                  <span className="text-slate-400 ml-2">({part.notes})</span>
+                                  <span className="font-mono font-semibold text-[#062D5B] mr-1.5">
+                                    {part.sku}
+                                  </span>
+                                  <span className="font-medium text-[#0B192C]">{part.name}</span>
+                                  <div className="text-[11px] text-[#5B6B7F]">{part.notes}</div>
                                 </div>
-                                <span className="font-mono text-slate-200">
-                                  {part.quantity} {part.unit} · {formatIdr(part.estimatedIdr)}
+                                <span className="font-mono text-[#0B192C] whitespace-nowrap tabular-nums">
+                                  {part.quantity} {part.unit}
                                 </span>
                               </li>
                             ))}
                           </ul>
                         )}
                       </div>
-                    </div>
 
-                    {/* Panel Aksi Teknisi & Verifikasi Telemetri */}
-                    <div className="lg:col-span-5 scada-inset p-3 flex flex-col justify-between gap-2.5">
-                      <div className="space-y-2">
-                        <label className="block text-[11px] font-mono text-slate-400">
-                          CATATAN TEKNISI / BUKTI LAPANGAN
+                      {/* Catatan Teknisi & Aktivitas Check-In */}
+                      <div className="space-y-2 text-[12px]">
+                        <label
+                          htmlFor="wo-notes-input"
+                          className="block text-[11px] font-semibold uppercase tracking-wider text-[#5B6B7F]"
+                        >
+                          Catatan Teknisi &amp; Riwayat Aktivitas
                         </label>
                         <textarea
+                          id="wo-notes-input"
                           rows={2}
                           value={notesVal}
                           onChange={(e) =>
-                            setNotesDraft((prev) => ({ ...prev, [wo.id]: e.target.value }))
+                            setNotesDraft((prev) => ({ ...prev, [activeWo.id]: e.target.value }))
                           }
-                          className="w-full bg-[#0B0F17] border border-[#334155] rounded px-2.5 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-[#0EA5E9]"
+                          placeholder="Tulis temuan lapangan, nomor seri suku cadang pengganti, atau hasil ukur..."
+                          className="ops-input w-full px-2.5 py-1.5"
                         />
-                        {wo.checkin_at && (
-                          <div className="text-[11px] font-mono text-emerald-300">
-                            Check-in GPS: {formatWibTime(wo.checkin_at)} ({wo.checkin_lat?.toFixed(4)},{" "}
-                            {wo.checkin_lng?.toFixed(4)})
+                        {activeWo.checkin_at && (
+                          <div className="text-[11px] font-mono text-[#15803D]">
+                            Check-in demo: {formatWibTime(activeWo.checkin_at)} (
+                            {activeWo.checkin_lat?.toFixed(4)}, {activeWo.checkin_lng?.toFixed(4)})
                           </div>
                         )}
                       </div>
 
-                      <div className="flex flex-wrap gap-2">
-                        {wo.status === "OPEN" && (
+                      {/* Tombol Aksi Kontekstual */}
+                      <div className="flex flex-wrap gap-2 pt-2 border-t border-[#DCE3EC]">
+                        {activeWo.status === "OPEN" && (
                           <button
                             type="button"
                             disabled={isBusy}
-                            onClick={() => handleWoAction(wo, "ASSIGN")}
-                            className="px-3 py-1.5 text-xs font-semibold rounded bg-sky-600 text-white hover:bg-sky-500 disabled:opacity-50 cursor-pointer"
+                            onClick={() => handleWoAction(activeWo, "ASSIGN")}
+                            className="ops-btn-primary px-3 py-1.5 text-[12px] cursor-pointer disabled:opacity-50"
                           >
                             Tugaskan Regu
                           </button>
                         )}
 
-                        {(wo.status === "OPEN" || wo.status === "ASSIGNED") && (
+                        {(activeWo.status === "OPEN" || activeWo.status === "ASSIGNED") && (
                           <button
                             type="button"
                             disabled={isBusy}
-                            onClick={() => handleWoAction(wo, "CHECKIN")}
-                            className="px-3 py-1.5 text-xs font-semibold rounded bg-amber-500 text-slate-950 hover:bg-amber-400 disabled:opacity-50 cursor-pointer"
+                            onClick={() => handleWoAction(activeWo, "CHECKIN")}
+                            className="px-3 py-1.5 text-[12px] font-semibold rounded-md bg-[#FEF3C7] text-[#92400E] border border-[#FCD34D] hover:bg-[#FDE68A] cursor-pointer disabled:opacity-50"
                           >
-                            Check-In Teknisi GPS (Otorisasi Panel 90m)
+                            Simulasikan Check-in (Servis 90 menit)
                           </button>
                         )}
 
-                        {wo.device_status !== "NORMAL" &&
-                          wo.status !== "VERIFIED" &&
-                          wo.status !== "CLOSED" && (
+                        {activeWo.device_status !== "NORMAL" &&
+                          activeWo.status !== "VERIFIED" &&
+                          activeWo.status !== "CLOSED" && (
                             <button
                               type="button"
                               disabled={isBusy}
-                              onClick={() => simulateDeviceRecovery(wo)}
-                              className="px-3 py-1.5 text-xs font-medium rounded border border-emerald-600/70 bg-emerald-950/60 text-emerald-200 hover:bg-emerald-900/60 disabled:opacity-50 cursor-pointer"
+                              onClick={() => simulateDeviceRecovery(activeWo)}
+                              className="px-3 py-1.5 text-[12px] font-medium rounded-md border border-[#15803D]/40 bg-[#ECFDF5] text-[#065F46] hover:bg-[#D1FAE5] cursor-pointer disabled:opacity-50"
                             >
                               Simulasikan Pemulihan Telemetri Normal
                             </button>
                           )}
 
-                        {(wo.status === "ASSIGNED" || wo.status === "IN_PROGRESS") && (
+                        {(activeWo.status === "ASSIGNED" || activeWo.status === "IN_PROGRESS") && (
                           <button
                             type="button"
                             disabled={isBusy}
-                            onClick={() => handleWoAction(wo, "VERIFY")}
-                            className="px-3 py-1.5 text-xs font-semibold rounded bg-emerald-500 text-slate-950 hover:bg-emerald-400 disabled:opacity-50 cursor-pointer"
+                            onClick={() => handleWoAction(activeWo, "VERIFY")}
+                            className="ops-btn-primary px-3 py-1.5 text-[12px] cursor-pointer disabled:opacity-50"
                           >
                             Verifikasi Pemulihan Telemetri
                           </button>
                         )}
 
-                        {wo.status === "VERIFIED" && (
+                        {activeWo.status === "VERIFIED" && (
                           <button
                             type="button"
                             disabled={isBusy}
-                            onClick={() => handleWoAction(wo, "CLOSE")}
-                            className="px-3 py-1.5 text-xs font-semibold rounded bg-slate-200 text-slate-950 hover:bg-white disabled:opacity-50 cursor-pointer"
+                            onClick={() => handleWoAction(activeWo, "CLOSE")}
+                            className="px-3 py-1.5 text-[12px] font-semibold rounded-md bg-[#0B192C] text-white hover:bg-[#334155] cursor-pointer disabled:opacity-50"
                           >
                             Tutup Tiket (CLOSED)
                           </button>
@@ -542,63 +678,63 @@ export default function WorkOrdersAndCitizenPage() {
                         <button
                           type="button"
                           disabled={isBusy}
-                          onClick={() => handleWoAction(wo, "UPDATE_NOTES")}
-                          className="px-2.5 py-1.5 text-xs font-medium rounded border border-[#334155] bg-[#0B0F17] text-slate-300 hover:text-white cursor-pointer"
+                          onClick={() => handleWoAction(activeWo, "UPDATE_NOTES")}
+                          className="ops-btn-secondary px-3 py-1.5 text-[12px] cursor-pointer disabled:opacity-50"
                         >
                           Simpan Catatan
                         </button>
                       </div>
-                    </div>
-                  </div>
 
-                  {woFeedback && woFeedback.woId === wo.id && (
-                    <div
-                      className={`p-2.5 rounded border text-xs font-mono ${
-                        woFeedback.ok
-                          ? "bg-emerald-950/70 border-emerald-700/70 text-emerald-200"
-                          : "bg-red-950/70 border-red-700/70 text-red-200"
-                      }`}
-                    >
-                      {woFeedback.message}
-                    </div>
-                  )}
+                      {woFeedback && woFeedback.woId === activeWo.id && (
+                        <div
+                          className={`p-2.5 rounded-md border text-[12px] font-mono ${
+                            woFeedback.ok
+                              ? "bg-[#ECFDF5] border-[#A7F3D0] text-[#065F46]"
+                              : "bg-[#FEF2F2] border-[#FCA5A5] text-[#991B1B]"
+                          }`}
+                        >
+                          {woFeedback.message}
+                        </div>
+                      )}
+                    </>
+                  );
+                })()
+              ) : (
+                <div className="text-xs text-[#5B6B7F]">
+                  Pilih satu Work Order di tabel sebelah kiri untuk memeriksa detail dan melakukan tindakan.
                 </div>
-              );
-            })}
+              )}
+            </aside>
           </div>
         </div>
       ) : (
         <div className="space-y-4">
-          {/* Disklamer Wajib Simulasi Aduan Warga */}
-          <div className="scada-panel p-3.5 border-amber-700/70 bg-amber-950/25 text-xs text-amber-100">
-            <span className="font-mono font-bold text-amber-300 mr-2">
-              DISKLAMER SIMULASI INTERNAL:
-            </span>
+          <div className="ops-card p-3.5 border-[#FCD34D] bg-[#FFFBEB] text-[12px] text-[#78350F]">
+            <span className="font-mono font-bold mr-2">DISKLAMER SIMULASI INTERNAL:</span>
             Modul ini mengadaptasi alur pelaporan publik{" "}
             <span className="font-mono">ULAS Surakarta</span> (penomoran 10 digit{" "}
             <span className="font-mono">ID. 2026XXXXXX</span>, status{" "}
             <span className="font-mono">Open → Responded → Process → Resolved</span>, serta tautan
-            tindak lanjut <span className="font-mono">FOLLOW UP ADUAN</span>) untuk keperluan
-            demonstrasi operator REKASURYA. <strong>Bukan integrasi resmi dengan sistem Pemerintah Kota Surakarta</strong> dan hanya memakai identitas warga simulasi.
+            tindak lanjut <span className="font-mono">FOLLOW UP ADUAN</span>) untuk demonstrasi
+            operator REKASURYA. <strong>Bukan integrasi resmi dengan sistem Pemerintah Kota Surakarta</strong>.
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-            {/* Formulir Kirim Aduan Warga Demo */}
-            <form onSubmit={handleSubmitCitizen} className="lg:col-span-5 scada-panel p-4 space-y-3">
-              <h2 className="text-sm font-semibold text-slate-100">
-                Simulasi Pengiriman Aduan Warga PJU
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 min-w-0">
+            <form onSubmit={handleSubmitCitizen} className="lg:col-span-5 min-w-0 ops-card p-4 space-y-3">
+              <h2 className="text-[14px] font-semibold text-[#0B192C]">
+                Simulasi Kirim Aduan Warga PJU
               </h2>
-              <p className="text-xs text-slate-400">
-                Koordinat laporan dicocokkan otomatis ke tiang REKASURYA terdekat (jarak Haversine) untuk menghubungkan laporan warga dengan telemetri dan Work Order teknis.
+              <p className="text-[12px] text-[#5B6B7F]">
+                Koordinat laporan dicocokkan otomatis via jarak Haversine ke tiang terdekat untuk menautkan telemetri dan Work Order teknis.
               </p>
 
-              <div className="grid grid-cols-2 gap-2.5 text-xs">
+              <div className="grid grid-cols-2 gap-2.5 text-[12px]">
                 <div>
-                  <label className="block text-slate-400 mb-1">Kanal Simulasi</label>
+                  <label className="block text-[#5B6B7F] mb-1">Kanal Simulasi</label>
                   <select
                     value={citChannel}
                     onChange={(e) => setCitChannel(e.target.value as typeof citChannel)}
-                    className="w-full bg-[#0B0F17] border border-[#334155] rounded px-2.5 py-1.5 text-slate-100"
+                    className="ops-input w-full px-2.5 py-1.5"
                   >
                     <option value="Web ULAS">Web ULAS</option>
                     <option value="Lapor Mas Wali (WA)">Lapor Mas Wali (WA)</option>
@@ -607,34 +743,34 @@ export default function WorkOrdersAndCitizenPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-slate-400 mb-1">4 Digit Akhir HP</label>
+                  <label className="block text-[#5B6B7F] mb-1">4 Digit Akhir HP</label>
                   <input
                     required
                     pattern="\d{4}"
                     maxLength={4}
                     value={citPhone4}
                     onChange={(e) => setCitPhone4(e.target.value)}
-                    className="w-full bg-[#0B0F17] border border-[#334155] rounded px-2.5 py-1.5 font-mono text-slate-100"
+                    className="ops-input w-full px-2.5 py-1.5 font-mono"
                   />
                 </div>
               </div>
 
-              <div className="text-xs">
-                <label className="block text-slate-400 mb-1">Nama Alias Pelapor (Demo)</label>
+              <div className="text-[12px]">
+                <label className="block text-[#5B6B7F] mb-1">Nama Alias Pelapor (Demo)</label>
                 <input
                   required
                   value={citAlias}
                   onChange={(e) => setCitAlias(e.target.value)}
-                  className="w-full bg-[#0B0F17] border border-[#334155] rounded px-2.5 py-1.5 text-slate-100"
+                  className="ops-input w-full px-2.5 py-1.5"
                 />
               </div>
 
-              <div className="text-xs">
-                <label className="block text-slate-400 mb-1">Lokasi Ruas Jalan (Titik GPS)</label>
+              <div className="text-[12px]">
+                <label className="block text-[#5B6B7F] mb-1">Lokasi Ruas Jalan (Titik GPS)</label>
                 <select
                   value={citCorridorIdx}
                   onChange={(e) => setCitCorridorIdx(Number(e.target.value))}
-                  className="w-full bg-[#0B0F17] border border-[#334155] rounded px-2.5 py-1.5 text-slate-100"
+                  className="ops-input w-full px-2.5 py-1.5"
                 >
                   {CORRIDOR_COORDS.map((c, idx) => (
                     <option key={c.label} value={idx}>
@@ -644,74 +780,73 @@ export default function WorkOrdersAndCitizenPage() {
                 </select>
               </div>
 
-              <div className="text-xs">
-                <label className="block text-slate-400 mb-1">
+              <div className="text-[12px]">
+                <label className="block text-[#5B6B7F] mb-1">
                   Tindak Lanjut Dari ID Sebelumnya (Opsional)
                 </label>
                 <input
                   value={citFollowUp}
                   onChange={(e) => setCitFollowUp(e.target.value)}
                   placeholder="Contoh: ID. 2026004685"
-                  className="w-full bg-[#0B0F17] border border-[#334155] rounded px-2.5 py-1.5 font-mono text-slate-100"
+                  className="ops-input w-full px-2.5 py-1.5 font-mono"
                 />
               </div>
 
-              <div className="text-xs">
-                <label className="block text-slate-400 mb-1">Uraian Keluhan PJU</label>
+              <div className="text-[12px]">
+                <label className="block text-[#5B6B7F] mb-1">Uraian Keluhan PJU</label>
                 <textarea
                   required
                   minLength={8}
                   rows={3}
                   value={citDesc}
                   onChange={(e) => setCitDesc(e.target.value)}
-                  className="w-full bg-[#0B0F17] border border-[#334155] rounded px-2.5 py-1.5 text-slate-100"
+                  className="ops-input w-full px-2.5 py-1.5"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={busyCit}
-                className="w-full py-2 text-xs font-semibold rounded bg-[#0EA5E9] text-slate-950 hover:bg-sky-400 disabled:opacity-50 cursor-pointer"
+                className="ops-btn-primary w-full py-2 text-[12px] cursor-pointer disabled:opacity-50"
               >
                 {busyCit ? "Mencatat & Mencocokkan Tiang..." : "Kirim Aduan Demo & Tautkan Telemetri"}
               </button>
 
               {citSubmitResult && (
-                <div className="p-2.5 rounded border border-emerald-700/70 bg-emerald-950/60 text-xs font-mono text-emerald-200">
+                <div className="p-2.5 rounded-md border border-[#A7F3D0] bg-[#ECFDF5] text-[12px] font-mono text-[#065F46]">
                   {citSubmitResult}
                 </div>
               )}
             </form>
 
-            {/* Pelacak Tiket & Lini Masa */}
-            <div className="lg:col-span-7 space-y-3">
-              <form onSubmit={handleCitizenSearch} className="scada-panel p-3.5 flex flex-wrap items-end gap-2 text-xs">
+            <div className="lg:col-span-7 min-w-0 space-y-3">
+              <form
+                onSubmit={handleCitizenSearch}
+                className="ops-card p-3 flex flex-wrap items-end gap-2 text-[12px]"
+              >
                 <div className="flex-1 min-w-[170px]">
-                  <label className="block text-[11px] font-mono text-slate-400 mb-1">
+                  <label className="block text-[11px] font-mono text-[#5B6B7F] mb-1">
                     Lacak Nomor Aduan
                   </label>
                   <input
                     value={trackId}
                     onChange={(e) => setTrackId(e.target.value)}
                     placeholder="ID. 2026007610"
-                    className="w-full bg-[#0B0F17] border border-[#334155] rounded px-2.5 py-1.5 font-mono text-slate-100"
+                    className="ops-input w-full px-2.5 py-1.5 font-mono"
                   />
                 </div>
                 <div className="w-28">
-                  <label className="block text-[11px] font-mono text-slate-400 mb-1">
+                  <label className="block text-[11px] font-mono text-[#5B6B7F] mb-1">
                     4 Digit HP
                   </label>
                   <input
                     value={trackPhoneLast4}
                     onChange={(e) => setTrackPhoneLast4(e.target.value)}
                     placeholder="4821"
-                    className="w-full bg-[#0B0F17] border border-[#334155] rounded px-2.5 py-1.5 font-mono text-slate-100"
+                    className="ops-input w-full px-2.5 py-1.5 font-mono"
                   />
                 </div>
-                <button
-                  type="submit"
-                  className="px-3 py-1.5 text-xs font-semibold rounded bg-[#161F30] border border-[#334155] text-slate-100 hover:border-[#0EA5E9] cursor-pointer"
-                >
+                <button type="submit" className="ops-btn-secondary px-3 py-1.5 cursor-pointer">
                   Cari
                 </button>
                 <button
@@ -721,29 +856,29 @@ export default function WorkOrdersAndCitizenPage() {
                     setTrackPhoneLast4("");
                     loadAll();
                   }}
-                  className="px-3 py-1.5 text-xs rounded border border-[#1E293B] text-slate-400 hover:text-slate-200 cursor-pointer"
+                  className="ops-btn-secondary px-3 py-1.5 text-[#5B6B7F] cursor-pointer"
                 >
                   Semua
                 </button>
               </form>
 
               {reports.map((rep) => (
-                <div key={rep.id} className="scada-panel p-4 space-y-2.5">
-                  <div className="flex flex-wrap items-start justify-between gap-2 border-b border-[#1E293B] pb-2.5">
+                <div key={rep.id} className="ops-card p-4 space-y-2.5">
+                  <div className="flex flex-wrap items-start justify-between gap-2 border-b border-[#DCE3EC] pb-2.5">
                     <div>
-                      <div className="flex flex-wrap items-center gap-2 font-mono text-xs">
-                        <span className="font-bold text-sky-300">{rep.id}</span>
+                      <div className="flex flex-wrap items-center gap-2 font-mono text-[12px]">
+                        <span className="font-bold text-[#062D5B]">{rep.id}</span>
                         <CitizenStatusBadge status={rep.status} />
-                        <span className="px-1.5 py-0.5 rounded bg-[#161F30] text-slate-300 border border-[#1E293B] text-[10px]">
+                        <span className="px-2 py-0.5 rounded bg-[#F1F5F9] text-[#334155] border border-[#DCE3EC] text-[10px]">
                           {rep.channel}
                         </span>
                         {rep.follow_up_of && (
-                          <span className="text-amber-300 text-[10px]">
+                          <span className="text-[#B45309] text-[10px]">
                             Follow Up: {rep.follow_up_of}
                           </span>
                         )}
                       </div>
-                      <div className="text-xs text-slate-300 mt-1">
+                      <div className="text-[12px] text-[#334155] mt-1">
                         {rep.corridor_name} · Pelapor: {rep.reporter_alias} (HP ...{rep.phone_last4})
                       </div>
                     </div>
@@ -751,34 +886,33 @@ export default function WorkOrdersAndCitizenPage() {
                       {rep.matched_device_id && (
                         <Link
                           href={`/devices/${rep.matched_device_id}`}
-                          className="text-sky-400 hover:underline block"
+                          className="text-[#062D5B] hover:underline block font-semibold"
                         >
                           Tiang: {rep.matched_device_id}
                         </Link>
                       )}
                       {rep.linked_work_order_id && (
-                        <span className="text-amber-300 block">
+                        <span className="text-[#B45309] block">
                           WO: {rep.linked_work_order_id}
                         </span>
                       )}
                     </div>
                   </div>
 
-                  <p className="text-xs text-slate-200 leading-relaxed">{rep.description}</p>
+                  <p className="text-[13px] text-[#0B192C] leading-relaxed">{rep.description}</p>
 
-                  {/* Lini Masa Progres */}
-                  <div className="scada-inset p-2.5 space-y-1.5">
-                    <div className="text-[10px] font-mono uppercase text-slate-400">
+                  <div className="ops-inset p-3 space-y-1.5">
+                    <div className="text-[11px] font-semibold uppercase text-[#5B6B7F]">
                       Riwayat Tindak Lanjut
                     </div>
                     {rep.timeline.map((step, i) => (
                       <div key={`${rep.id}-${i}`} className="flex items-start gap-2 text-[11px]">
-                        <span className="font-mono text-slate-500 shrink-0 w-28">
+                        <span className="font-mono text-[#5B6B7F] shrink-0 w-28">
                           {formatWibTime(step.timestamp)}
                         </span>
                         <CitizenStatusBadge status={step.status} />
-                        <span className="text-slate-300">
-                          <strong className="text-slate-100">{step.actor}:</strong> {step.note}
+                        <span className="text-[#334155]">
+                          <strong className="text-[#0B192C]">{step.actor}:</strong> {step.note}
                         </span>
                       </div>
                     ))}

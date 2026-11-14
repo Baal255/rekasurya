@@ -51,7 +51,7 @@ export function executeDeviceCommand(
 
     if (device.batt_v < uvloV || device.soc_pct < 12) {
       throw new Error(
-        `Perintah ditolak oleh proteksi firmware UVLO: baterai ${device.batt_v.toFixed(1)} V (SoC ${device.soc_pct.toFixed(0)}%) di bawah batas aman (${uvloV.toFixed(1)} V / 12%). PWM dikunci 0%.`
+        `Simulasi UVLO menolak perintah: baterai ${device.batt_v.toFixed(1)} V (SoC ${device.soc_pct.toFixed(0)}%) di bawah ambang demo (${uvloV.toFixed(1)} V / 12%).`
       );
     }
 
@@ -106,8 +106,8 @@ export function executeDeviceCommand(
       appliedPwmDuty: targetDuty,
       clampedBySafety,
       message: clampedBySafety
-        ? `Duty PWM dibatasi ke ${targetDuty}% oleh batas keselamatan (lux siang / batas SoC / derating termal).`
-        : `Perintah PWM PC817 (${targetDuty}%) dikirim dan diterapkan ke ${device.id}.`,
+        ? `Simulasi membatasi PWM ke ${targetDuty}% berdasarkan iluminansi, SoC, atau suhu driver.`
+        : `PWM simulasi ${device.id} diatur ke ${targetDuty}%.`,
     };
   }
 
@@ -142,8 +142,8 @@ export function executeDeviceCommand(
     return {
       device: updated,
       message: input.enabled
-        ? `Mode pemeliharaan aktif ${input.duration_minutes} menit untuk ${device.id} (buka panel tidak memicu alarm F6).`
-        : `Mode pemeliharaan dinonaktifkan untuk ${device.id}; pengawasan anti-tamper kembali penuh.`,
+        ? `Mode servis simulasi aktif selama ${input.duration_minutes} menit untuk ${device.id}.`
+        : `Mode servis simulasi dinonaktifkan untuk ${device.id}.`,
     };
   }
 
@@ -167,6 +167,6 @@ export function executeDeviceCommand(
 
   return {
     device: updated,
-    message: `Perintah sinkronisasi telemetri & waktu DS3231 dikirim ke ${device.id} (MQTT QoS 1).`,
+    message: `Ping simulasi untuk ${device.id} tercatat di log demo.`,
   };
 }
