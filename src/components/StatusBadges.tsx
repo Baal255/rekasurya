@@ -1,4 +1,5 @@
 import React from "react";
+import { FAULT_FAMILY_PLAIN_LABEL } from "@/lib/format";
 import type {
   CitizenReportStatus,
   DeviceStatus,
@@ -23,16 +24,17 @@ export function DeviceStatusBadge({ status }: { status: DeviceStatus | string })
   };
   const labels: Record<string, string> = {
     NORMAL: "Normal",
-    WARNING_EWMA: "Peringatan EWMA",
-    FAULT: "Gangguan Aktif",
-    TAMPER_CRITICAL: "Sabotase Kritis",
-    OFFLINE: "Offline",
+    WARNING_EWMA: "Perlu diperiksa",
+    FAULT: "Perlu diperiksa",
+    TAMPER_CRITICAL: "Darurat",
+    OFFLINE: "Tidak terhubung",
   };
   return (
     <span
       className={`inline-flex items-center gap-1.5 px-2 py-0.5 text-[11px] font-medium rounded-md border whitespace-nowrap ${
         styles[status] ?? styles.OFFLINE
       }`}
+      title={status}
     >
       <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${dots[status] ?? dots.OFFLINE}`} />
       {labels[status] ?? status}
@@ -49,8 +51,8 @@ export function FaultFamilyBadge({
 }) {
   if (family === "NONE" || !family) {
     return (
-      <span className="inline-flex items-center px-2 py-0.5 text-[11px] font-mono rounded-md border bg-[#F4F6F9] text-[#5B6B7F] border-[#DCE3EC] whitespace-nowrap">
-        OK · Nominal
+      <span className="inline-flex items-center px-2 py-0.5 text-[11px] font-medium rounded-md border bg-[#F4F6F9] text-[#5B6B7F] border-[#DCE3EC] whitespace-nowrap">
+        Normal
       </span>
     );
   }
@@ -62,14 +64,16 @@ export function FaultFamilyBadge({
     F5: "bg-[#FEE2E2] text-[#7F1D1D] border-[#FCA5A5]",
     F6: "bg-[#FDF2F8] text-[#9D174D] border-[#FBCFE8]",
   };
+  const plain = FAULT_FAMILY_PLAIN_LABEL[family] ?? family;
   return (
     <span
-      className={`inline-flex items-center px-2 py-0.5 text-[11px] font-mono font-medium rounded-md border whitespace-nowrap ${
+      className={`inline-flex items-center gap-1.5 px-2 py-0.5 text-[11px] font-medium rounded-md border whitespace-nowrap ${
         styles[family] ?? "bg-[#F1F5F9] text-[#475569] border-[#CBD5E1]"
       }`}
-      title={subCode}
+      title={subCode && subCode !== "OK" ? `${plain} (${subCode})` : plain}
     >
-      {subCode && subCode !== "OK" ? subCode : family}
+      <span>{plain}</span>
+      <span className="font-mono text-[10px] opacity-75">{family}</span>
     </span>
   );
 }
@@ -84,9 +88,9 @@ export function WorkOrderStatusBadge({ status }: { status: WorkOrderStatus | str
   };
   const labels: Record<string, string> = {
     OPEN: "Belum Ditangani",
-    ASSIGNED: "Regu Ditugaskan",
-    IN_PROGRESS: "Dalam Pengerjaan",
-    VERIFIED: "Terverifikasi Telemetri",
+    ASSIGNED: "Teknisi Ditugaskan",
+    IN_PROGRESS: "Sedang Dikerjakan",
+    VERIFIED: "Terverifikasi Sensor",
     CLOSED: "Selesai",
   };
   return (
@@ -112,14 +116,18 @@ export function PriorityBadge({ priority }: { priority: string }) {
     LOW: "bg-[#F1F5F9] text-[#475569] border-[#CBD5E1]",
   };
   const labels: Record<string, string> = {
-    CRITICAL: "KRITIS",
-    HIGH: "TINGGI",
-    MEDIUM: "SEDANG",
-    LOW: "RENDAH",
+    DARURAT: "Darurat",
+    CRITICAL: "Darurat",
+    TINGGI: "Tinggi",
+    HIGH: "Tinggi",
+    SEDANG: "Sedang",
+    MEDIUM: "Sedang",
+    RENDAH: "Rendah",
+    LOW: "Rendah",
   };
   return (
     <span
-      className={`inline-flex items-center px-1.5 py-0.5 text-[10px] font-mono font-semibold rounded border tracking-wide whitespace-nowrap ${
+      className={`inline-flex items-center px-2 py-0.5 text-[11px] font-semibold rounded-md border whitespace-nowrap ${
         styles[priority] ?? styles.SEDANG
       }`}
     >
@@ -135,9 +143,9 @@ export function SpatialVerdictBadge({ verdict }: { verdict: string }) {
     ANOMALI_LOKAL: "bg-[#FFF8E7] text-[#92400E] border-[#FEB124]",
   };
   const labels: Record<string, string> = {
-    NORMAL: "Korelasi Normal",
-    CUACA_SERUAS: "Cuaca Seruas (Bukan Fault)",
-    ANOMALI_LOKAL: "Anomali Lokal 1 Tiang",
+    NORMAL: "Tiang sekitar normal",
+    CUACA_SERUAS: "Mendung sekoridor (Bukan gangguan tiang)",
+    ANOMALI_LOKAL: "Gangguan khusus 1 tiang",
   };
   return (
     <span

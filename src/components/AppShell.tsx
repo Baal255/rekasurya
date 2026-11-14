@@ -50,47 +50,47 @@ interface NavItem {
 
 const NAV_GROUPS: Array<{ heading: string; items: NavItem[] }> = [
   {
-    heading: "Operasi & Pemantauan",
+    heading: "Pemantauan & Lapangan",
     items: [
-      { href: "/console", label: "Ringkasan Konsol", exact: true, icon: OverviewIcon },
-      { href: "/devices", label: "Inventaris Perangkat", exact: true, icon: DevicesIcon },
+      { href: "/console", label: "Konsol Utama", exact: true, icon: OverviewIcon },
+      { href: "/devices", label: "Daftar Tiang", exact: true, icon: DevicesIcon },
       {
         href: "/devices/SRG-009",
         matchPrefix: "/devices/",
-        label: "Diagnostik Perangkat",
+        label: "Kondisi per Tiang",
         icon: DiagnosticsIcon,
       },
-      { href: "/alerts", label: "Gangguan & Alarm", exact: true, icon: AlertsIcon },
-      { href: "/work-orders", label: "Work Order & Aduan", exact: true, icon: WorkOrdersIcon },
-      { href: "/map", label: "Peta Operasional", exact: true, icon: MapIcon },
-      { href: "/energy", label: "Analitik Energi", exact: true, icon: EnergyIcon },
+      { href: "/alerts", label: "Gangguan & Peringatan", exact: true, icon: AlertsIcon },
+      { href: "/work-orders", label: "Tugas Teknisi & Aduan", exact: true, icon: WorkOrdersIcon },
+      { href: "/map", label: "Peta Lokasi", exact: true, icon: MapIcon },
+      { href: "/energy", label: "Kalkulator Penghematan", exact: true, icon: EnergyIcon },
     ],
   },
   {
-    heading: "Rekayasa & Pengujian",
+    heading: "Simulasi & Rincian Teknis",
     items: [
-      { href: "/simulator", label: "Simulator Telemetri", exact: true, icon: SimulatorIcon },
-      { href: "/architecture", label: "Arsitektur & Kontrak AI", exact: true, icon: ArchitectureIcon },
+      { href: "/simulator", label: "Simulator Gangguan", exact: true, icon: SimulatorIcon },
+      { href: "/architecture", label: "Rincian Teknis & Sensor", exact: true, icon: ArchitectureIcon },
     ],
   },
 ];
 
 function resolvePageTitle(pathname: string): { section: string; page: string } {
   if (pathname === "/console" || pathname === "/dashboard") {
-    return { section: "Konsol Operasi", page: "Ringkasan Komando Armada" };
+    return { section: "Konsol Utama", page: "Ringkasan Pemantauan Tiang" };
   }
-  if (pathname === "/devices") return { section: "Aset PJU", page: "Inventaris Perangkat (18 Tiang)" };
+  if (pathname === "/devices") return { section: "Daftar Tiang", page: "Kondisi 18 Tiang Simulasi" };
   if (pathname.startsWith("/devices/")) {
     const id = pathname.replace("/devices/", "");
-    return { section: "Diagnostik Teknis", page: `Inspeksi Tiang ${id}` };
+    return { section: "Kondisi per Tiang", page: `Pemeriksaan Tiang ${id}` };
   }
-  if (pathname === "/alerts") return { section: "Pemantauan", page: "Manajemen Gangguan & Alarm" };
-  if (pathname === "/work-orders") return { section: "Pemeliharaan", page: "Work Order & Aduan Warga" };
-  if (pathname === "/map") return { section: "Geospasial", page: "Peta Operasional Solo Raya" };
-  if (pathname === "/energy") return { section: "Energi", page: "Analitik Energi & Penghematan" };
-  if (pathname === "/simulator") return { section: "Pengujian", page: "Simulator Injeksi Telemetri" };
-  if (pathname === "/architecture") return { section: "Tata Kelola", page: "Arsitektur Hardware & Kontrak AI" };
-  return { section: "REKASURYA", page: "Konsol Operasi" };
+  if (pathname === "/alerts") return { section: "Pemantauan", page: "Daftar Gangguan & Peringatan" };
+  if (pathname === "/work-orders") return { section: "Lapangan", page: "Tugas Teknisi & Aduan Warga" };
+  if (pathname === "/map") return { section: "Peta", page: "Sebaran 5 Koridor Solo Raya" };
+  if (pathname === "/energy") return { section: "Penghematan", page: "Kalkulator Listrik & Biaya Perawatan" };
+  if (pathname === "/simulator") return { section: "Simulasi", page: "Coba Skenario Gangguan" };
+  if (pathname === "/architecture") return { section: "Teknis", page: "Rincian Sensor, Kode Gangguan & Audit" };
+  return { section: "REKASURYA", page: "Konsol Utama" };
 }
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -249,20 +249,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         ))}
       </nav>
 
-      {/* Panel Status Sistem & Kejujuran Operasional di Bawah Sidebar */}
-      <div className="p-3.5 border-t border-white/12 bg-[#041E3E] space-y-2 text-[11px] text-[#CBD8EA]">
+      {/* Keterangan Data Simulasi di Bawah Sidebar */}
+      <div className="p-3.5 border-t border-white/12 bg-[#041E3E] space-y-1.5 text-[11.5px] text-[#CBD8EA]">
         <div className="flex items-center justify-between text-white font-medium">
-          <span className="inline-flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-[#FEB124]" />
-            Koneksi Basis Data
-          </span>
-          <span className="font-mono text-[#FFD585]">SQLite</span>
+          <span>Data simulasi lokal</span>
+          <span className="font-mono text-[#FFD585]">18 tiang</span>
         </div>
         <div className="text-[#A8BCD6] leading-snug">
-          Diagnosis demo berbasis aturan dan EWMA per sampel.
+          Pembandingan cuaca sekoridor &amp; penentuan dugaan gangguan.
         </div>
-        <div className="text-[10px] text-[#8EA5C4] font-mono pt-1 border-t border-white/10">
-          Simulasi internal · Bukan sistem resmi ULAS Surakarta
+        <div className="text-[10.5px] text-[#8EA5C4] pt-1 border-t border-white/10">
+          Bukan sistem resmi Pemkot Surakarta / ULAS
         </div>
       </div>
     </div>
@@ -294,7 +291,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         {/* Kolom Konten Utama */}
         <div className="flex-1 flex flex-col min-w-0 lg:pl-[248px]">
-          {/* Compact Application Toolbar (56px) */}
+          {/* Application Toolbar */}
           <header className="sticky top-0 z-20 h-14 bg-[#FFFFFF]/95 backdrop-blur-xs border-b border-[#DCE3EC] px-4 sm:px-6 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2.5 min-w-0">
               <button
@@ -310,21 +307,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <RekasuryaLogo variant="on-light" mode="mark" height={24} />
               </Link>
 
-              <div className="flex items-center gap-1.5 text-[13px] min-w-0 truncate">
+              <div className="hidden sm:flex items-center gap-1.5 text-[13px] min-w-0 truncate">
                 <span className="text-[#5B6B7F] hidden sm:inline">{breadcrumb.section}</span>
                 <span className="text-[#C4D0DE] hidden sm:inline">/</span>
                 <span className="font-semibold text-[#062D5B] truncate">{breadcrumb.page}</span>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 shrink-0">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#FFF8E7] border border-[#FEB124]/60 text-[#062D5B] text-[11px] font-mono font-semibold">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#FEB124]" />
-                SIMULASI<span className="hidden md:inline">DEMO</span>
+            <div className="flex items-center gap-3 shrink-0">
+              <span className="hidden md:inline text-[12px] text-[#5B6B7F]">
+                Data simulasi
               </span>
 
-              <span className="hidden xl:inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-[#F4F6F9] border border-[#DCE3EC] text-[#334155] text-[11px] font-mono tabular-nums">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#15803D]" />
+              <span className="hidden xl:inline text-[12px] font-mono text-[#5B6B7F] tabular-nums">
                 {toolbarTimeWib}
               </span>
 
@@ -336,11 +331,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   id="role-switcher"
                   value={role}
                   onChange={(e) => setRole(e.target.value as OperationalRole)}
-                  className="ops-input px-2.5 py-1.5 text-[12px] font-medium max-w-[144px] sm:max-w-none cursor-pointer"
+                  className="ops-input px-2.5 py-1.5 text-[12px] font-medium max-w-[154px] sm:max-w-none cursor-pointer"
                   title={ROLE_META[role].hint}
                 >
                   <option value="OPERATOR_DISHUB">Operator Dishub</option>
-                  <option value="TEKNISI_SKYLIFT">Teknisi Sky-Lift</option>
+                  <option value="TEKNISI_SKYLIFT">Teknisi Lapangan</option>
                   <option value="AUDITOR_PJU">Auditor PJU &amp; Pemda</option>
                 </select>
               </div>
@@ -350,11 +345,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 onClick={triggerResetDemo}
                 disabled={isResetting}
                 className="ops-btn-secondary px-2.5 py-1.5 text-[12px] inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                title="Pulihkan 18 tiang dan Work Order ke snapshot awal demo"
+                title="Kembalikan 18 tiang contoh dan daftar tugas ke kondisi awal simulasi"
               >
                 <RefreshIcon className={`w-3.5 h-3.5 ${isResetting ? "animate-spin" : ""}`} />
                 <span className="hidden sm:inline">
-                  {isResetting ? "Mereset..." : "Reset Demo"}
+                  {isResetting ? "Mereset..." : "Ulangi Data Awal"}
                 </span>
               </button>
             </div>

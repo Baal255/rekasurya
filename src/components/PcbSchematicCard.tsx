@@ -29,10 +29,10 @@ export function PcbSchematicCard({ device }: { device: DeviceRecord }) {
       <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
         <div>
           <h3 className="text-[14px] font-semibold text-[#0B192C]">
-            Skematik Topologi Pengukuran 3-Kanal Terisolasi &amp; Jalur Daya LED
+            Diagram Jalur Daya dan Pengukuran
           </h3>
           <p className="text-[12px] text-[#5B6B7F]">
-            Daya utama LED 40 W mengalir eksternal melalui SCC → Buck CC-CV terpisah; PCB kendali hanya menarik 1–2 W.
+            Rancangan board memakai keluaran SCC LOAD untuk driver eksternal dan catu baterai untuk PCB kendali. Angka berasal dari skenario demo.
           </p>
         </div>
         <span className="px-2.5 py-1 text-[11px] font-mono rounded-md border border-[#DCE3EC] bg-[#F8FAFC] text-[#0B192C]">
@@ -45,12 +45,13 @@ export function PcbSchematicCard({ device }: { device: DeviceRecord }) {
           viewBox="0 0 920 270"
           className="w-full min-w-[720px] h-auto block font-mono"
           role="img"
-          aria-label="Diagram Blok Hardware REKASURYA 3 Kanal Terisolasi"
+          aria-label="Diagram jalur PV, baterai, dan beban dari SCC"
         >
           {/* Jalur Daya Eksternal */}
           <line x1="175" y1="64" x2="255" y2="64" stroke="#062D5B" strokeWidth="2.8" />
           <line x1="405" y1="64" x2="480" y2="64" stroke="#062D5B" strokeWidth="2.8" />
-          <line x1="635" y1="64" x2="725" y2="64" stroke="#B45309" strokeWidth="2.8" />
+          <path d="M 375 24 V 10 H 814 V 24" fill="none" stroke="#B45309" strokeWidth="2.8" />
+          <text x="407" y="55" fill="#5B6B7F" fontSize="9">SCC BAT</text>
           <line x1="557" y1="98" x2="557" y2="152" stroke="#15803D" strokeWidth="2.4" />
 
           {/* Blok 1: Panel Surya + INA228 85V */}
@@ -122,7 +123,7 @@ export function PcbSchematicCard({ device }: { device: DeviceRecord }) {
             SoC {formatNum(device.soc_pct, 0)}% · SoH {formatNum(device.soh_pct, 1)}%
           </text>
           <text x="490" y="95" fill="#5B6B7F" fontSize="9.5">
-            T_Batt {formatNum(device.temp_batt_c)}°C · UVLO 22V
+            Isolasi B0303S + ADuM1250
           </text>
 
           {/* Blok 4: Jalur Daya Eksternal -> Buck CC-CV -> LED 40W */}
@@ -146,7 +147,7 @@ export function PcbSchematicCard({ device }: { device: DeviceRecord }) {
             {formatNum(device.load_p)} W · PWM {device.pwm_duty}%
           </text>
           <text x="735" y="95" fill="#5B6B7F" fontSize="9.5">
-            Buck CC-CV 40W Eksternal
+            SCC LOAD → Buck CC-CV
           </text>
 
           {/* Panah PWM Terisolasi PC817 dari Board ESP32 ke Driver LED */}

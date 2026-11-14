@@ -4,35 +4,25 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { RekasuryaLogo } from "@/components/RekasuryaLogo";
 
-interface LandingNavProps {
-  totalDevices: number;
-  activeFaults: number;
-  isDemoSimulation: boolean;
-}
-
 const ANCHOR_LINKS = [
-  { href: "#konvergensi", label: "Konvergensi" },
+  { href: "#cara-kerja", label: "Cara Kerja" },
   { href: "#pratinjau", label: "Pratinjau Konsol" },
-  { href: "#diagnosis", label: "Diagnosis F1–F6" },
-  { href: "#prinsip", label: "Prinsip & Batasan" },
+  { href: "#diagnosis", label: "Jenis Gangguan & Penghematan" },
+  { href: "#prinsip", label: "Keandalan Sistem" },
 ];
 
 const MODULE_LINKS = [
-  { href: "/console", label: "Konsol Armada", desc: "Ringkasan KPI, peta & triase langsung" },
-  { href: "/devices", label: "Inventori Tiang", desc: "Daftar & detail telemetri perangkat" },
-  { href: "/alerts", label: "Alarm & Gangguan", desc: "Klasifikasi F1–F6 & rekomendasi SKU" },
-  { href: "/work-orders", label: "Work Order & ULAS", desc: "Penugasan Sky-Lift & laporan warga" },
-  { href: "/map", label: "Peta Geospasial", desc: "Sebaran 5 koridor Solo Raya" },
-  { href: "/energy", label: "Kalkulator Energi", desc: "Proyeksi penghematan dual-stream" },
-  { href: "/simulator", label: "Simulator Gangguan", desc: "Uji injeksi skenario F1–F6 & reset demo" },
-  { href: "/architecture", label: "Arsitektur Hardware", desc: "Topologi 3-kanal terisolasi & BOM" },
+  { href: "/console", label: "Konsol Utama", desc: "Ringkasan tiang, peta, dan gangguan mendesak" },
+  { href: "/devices", label: "Daftar Tiang", desc: "Status panel, baterai, dan kondisi tiap tiang" },
+  { href: "/alerts", label: "Gangguan & Peringatan", desc: "Dugaan penyebab dan suku cadang yang disiapkan" },
+  { href: "/work-orders", label: "Tugas Teknisi & Aduan", desc: "Lokasi tiang, daftar suku cadang, & aduan warga" },
+  { href: "/map", label: "Peta Lokasi", desc: "Sebaran 5 koridor wilayah Solo Raya" },
+  { href: "/energy", label: "Kalkulator Penghematan", desc: "Penghematan listrik dan biaya perawatan" },
+  { href: "/simulator", label: "Simulator Gangguan", desc: "Coba skenario gangguan pada tiang" },
+  { href: "/architecture", label: "Detail Teknis", desc: "Spesifikasi sensor, F1–F6, EWMA, dan log SHA-256" },
 ];
 
-export function LandingNav({
-  totalDevices,
-  activeFaults,
-  isDemoSimulation,
-}: LandingNavProps) {
+export function LandingNav() {
   const [surfaceTone, setSurfaceTone] = useState<"dark" | "light">("dark");
   const [atHeroTop, setAtHeroTop] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -163,31 +153,13 @@ export function LandingNav({
             </div>
           </nav>
 
-          {/* Status & CTA */}
+          {/* Tombol utama navbar */}
           <div className="flex items-center gap-2 shrink-0">
-            <div
-              className={`hidden md:inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-[11px] font-mono border ${
-                isDarkChrome
-                  ? "bg-white/10 border-white/20 text-[#FFD585]"
-                  : "bg-[#FFF8E7] border-[#FEB124]/60 text-[#062D5B]"
-              }`}
-              title="Status basis data operasional lokal"
-            >
-              <span
-                className={`w-1.5 h-1.5 rounded-full ${
-                  activeFaults > 0 ? "bg-[#FEB124]" : "bg-[#15803D]"
-                }`}
-              />
-              <span>
-                {isDemoSimulation ? "Simulasi" : "Live"} • {totalDevices} Tiang
-              </span>
-            </div>
-
             <Link
               href="/console"
-              className="ops-btn-amber px-3.5 sm:px-4 py-2 text-[12.5px] inline-flex items-center gap-1.5 whitespace-nowrap shadow-sm"
+              className="ops-btn-amber px-4 sm:px-4.5 py-2 text-[13px] inline-flex items-center gap-1.5 whitespace-nowrap shadow-sm"
             >
-              <span>Masuk Konsol</span>
+              <span>Buka Konsol</span>
               <svg
                 className="w-3.5 h-3.5"
                 viewBox="0 0 24 24"
@@ -225,8 +197,8 @@ export function LandingNav({
         {/* Drawer Navigasi Mobile */}
         {menuOpen && (
           <div className="lg:hidden mt-2 rounded-2xl bg-white border border-[#DCE3EC] shadow-[var(--sh-3)] p-4 text-[#0B192C] space-y-4">
-            <div className="space-y-1">
-              <div className="text-[10.5px] font-semibold uppercase tracking-wider text-[#5B6B7F] px-2">
+            <div className="space-y-1.5">
+              <div className="text-[12px] font-semibold text-[#5B6B7F] px-2">
                 Bagian Halaman
               </div>
               <div className="grid grid-cols-2 gap-1.5">
@@ -243,9 +215,9 @@ export function LandingNav({
               </div>
             </div>
 
-            <div className="space-y-1 border-t border-[#DCE3EC] pt-3">
-              <div className="text-[10.5px] font-semibold uppercase tracking-wider text-[#5B6B7F] px-2">
-                Modul Konsol Operasional
+            <div className="space-y-1.5 border-t border-[#DCE3EC] pt-3">
+              <div className="text-[12px] font-semibold text-[#5B6B7F] px-2">
+                Halaman Konsol Operasional
               </div>
               <div className="grid grid-cols-2 gap-1.5">
                 {MODULE_LINKS.map((m) => (

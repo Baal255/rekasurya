@@ -97,29 +97,29 @@ export default function AlertsManagementPage() {
   return (
     <div className="space-y-4">
       <PageHeader
-        title="Manajemen Gangguan & Alarm"
-        subtitle="Daftar insiden terstruktur ala Linear untuk meninjau gangguan terdeteksi F1–F6, bukti telemetri pemicu, serta keterkaitan Work Order lapangan."
+        title="Daftar Gangguan & Peringatan Tiang"
+        subtitle="Pantau gangguan yang terdeteksi di tiap tiang, bandingkan dengan tiang sekitar, dan siapkan suku cadang sebelum menugaskan teknisi."
         meta={
-          <span className="px-2 py-0.5 text-[11px] font-mono rounded-md bg-[#F1F5F9] text-[#334155] border border-[#DCE3EC]">
-            {faults.filter((f) => f.status !== "RESOLVED").length} Aktif · {faults.length} Total Kejadian
+          <span className="text-[12px] text-[#5B6B7F]">
+            {faults.filter((f) => f.status !== "RESOLVED").length} aktif · {faults.length} total kejadian
           </span>
         }
         actions={
           <Link href="/work-orders" className="ops-btn-primary px-3 py-1.5 text-[12px]">
-            Kelola Work Order Terkait
+            Lihat Tugas Teknisi
           </Link>
         }
       />
 
-      {/* Bar Filter Multi-Kriteria Gaya Linear */}
+      {/* Bar Filter Multi-Kriteria */}
       <div className="ops-card p-3 space-y-2.5">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap items-center gap-1.5">
             {[
               { id: "ALL", label: "Semua Status" },
-              { id: "ACTIVE", label: "Aktif" },
-              { id: "ACKNOWLEDGED", label: "Dikonfirmasi" },
-              { id: "RESOLVED", label: "Pulih / Selesai" },
+              { id: "ACTIVE", label: "Perlu Penanganan" },
+              { id: "ACKNOWLEDGED", label: "Sudah Dicek" },
+              { id: "RESOLVED", label: "Sudah Normal" },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -136,8 +136,8 @@ export default function AlertsManagementPage() {
             ))}
           </div>
 
-          <div className="text-[11px] text-[#5B6B7F]">
-            Analitik: <span className="font-mono text-[#0B192C]">Baseline EWMA Deterministik</span>
+          <div className="text-[12px] text-[#5B6B7F]">
+            Pembandingan tiang sekoridor (EWMA)
           </div>
         </div>
 
@@ -148,7 +148,7 @@ export default function AlertsManagementPage() {
               type="search"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Cari kode insiden, ID tiang, lokasi, atau sub-kode..."
+              placeholder="Cari ID gangguan, tiang, lokasi jalan, atau dugaan penyebab..."
               className="ops-input w-full pl-9 pr-3 py-1.5 text-[12px]"
             />
           </div>
@@ -159,26 +159,26 @@ export default function AlertsManagementPage() {
             onChange={(e) => setSeverityFilter(e.target.value)}
             className="ops-input px-2.5 py-1.5 text-[12px] cursor-pointer"
           >
-            <option value="ALL">Semua Urgensi</option>
-            <option value="CRITICAL">Kritis</option>
+            <option value="ALL">Semua Tingkat Urgensi</option>
+            <option value="CRITICAL">Darurat / Kritis</option>
             <option value="HIGH">Tinggi</option>
             <option value="MEDIUM">Sedang</option>
             <option value="LOW">Rendah</option>
           </select>
 
           <select
-            aria-label="Filter komponen gangguan"
+            aria-label="Filter dugaan gangguan"
             value={familyFilter}
             onChange={(e) => setFamilyFilter(e.target.value)}
             className="ops-input px-2.5 py-1.5 text-[12px] cursor-pointer"
           >
-            <option value="ALL">Semua Komponen (F1–F6)</option>
-            <option value="F1">F1 · Panel Surya / Shading</option>
-            <option value="F2">F2 · Baterai SoH / UVLO</option>
-            <option value="F3">F3 · SCC MPPT</option>
-            <option value="F4">F4 · Driver &amp; LED</option>
-            <option value="F5">F5 · Suhu Berlebih</option>
-            <option value="F6">F6 · Sabotase &amp; Pencurian</option>
+            <option value="ALL">Semua Dugaan Gangguan (F1–F6)</option>
+            <option value="F1">Panel tertutup atau kotor (F1)</option>
+            <option value="F2">Baterai melemah (F2)</option>
+            <option value="F3">Pengisi surya / SCC (F3)</option>
+            <option value="F4">Lampu atau driver LED (F4)</option>
+            <option value="F5">Suhu berlebih (F5)</option>
+            <option value="F6">Kotak baterai dibuka paksa (F6)</option>
           </select>
 
           <select

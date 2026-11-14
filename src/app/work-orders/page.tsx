@@ -286,8 +286,8 @@ export default function WorkOrdersAndCitizenPage() {
   return (
     <div className="space-y-4">
       <PageHeader
-        title="Operasi Pemeliharaan Work Order & Aduan Warga"
-        subtitle="Simulasi antrean regu sky-lift, daftar suku cadang, check-in pada koordinat tiang, dan verifikasi pemulihan dengan telemetri demo."
+        title="Tugas Teknisi dengan Lokasi & Daftar Suku Cadang"
+        subtitle="Siapkan lokasi tiang, dugaan penyebab, dan daftar suku cadang sebelum regu berangkat, lalu cek ulang hasil perbaikan bersama aduan warga."
         actions={
           <div className="inline-flex items-center rounded-md border border-[#DCE3EC] bg-[#FFFFFF] p-0.5 text-[12px] font-medium">
             <button
@@ -299,7 +299,7 @@ export default function WorkOrdersAndCitizenPage() {
                   : "text-[#5B6B7F] hover:text-[#0B192C]"
               }`}
             >
-              Antrean Work Order ({workOrders.length})
+              Tugas Teknisi ({workOrders.length})
             </button>
             <button
               type="button"
@@ -547,18 +547,18 @@ export default function WorkOrdersAndCitizenPage() {
                       </div>
 
                       <div className="space-y-1.5 text-[12px]">
-                        <div className="text-[11px] font-semibold uppercase tracking-wider text-[#5B6B7F]">
-                          Ringkasan Diagnosis &amp; Alur Kerja
+                        <div className="text-[12px] font-semibold text-[#5B6B7F]">
+                          Dugaan Penyebab &amp; Rincian Penanganan
                         </div>
                         <p className="text-[#0B192C] leading-relaxed">
                           {activeWo.diagnosis_summary}
                         </p>
                       </div>
 
-                      {/* Daftar Periksa Suku Cadang */}
+                      {/* Daftar Suku Cadang yang Disiapkan */}
                       <div className="ops-inset p-3 space-y-2">
-                        <div className="flex items-center justify-between text-[11px] font-semibold uppercase text-[#5B6B7F]">
-                          <span>Checklist Suku Cadang Sky-Lift</span>
+                        <div className="flex items-center justify-between text-[12px] font-semibold text-[#5B6B7F]">
+                          <span>Daftar Suku Cadang yang Disiapkan</span>
                           <span className="font-mono text-[#062D5B] tabular-nums">
                             {formatIdr(totalPartsIdr)}
                           </span>

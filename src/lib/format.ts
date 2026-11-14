@@ -50,26 +50,36 @@ export const ROLE_META: Record<
   OPERATOR_DISHUB: {
     label: "Operator Dishub",
     actorName: "Operator Ruang Kendali Dishub Solo Raya",
-    hint: "Pantau armada 5 kab/kota, triase gangguan, tugaskan Work Order, dan audit.",
+    hint: "Pantau seluruh tiang di 5 kab/kota, pilih gangguan paling mendesak, dan tugaskan teknisi.",
   },
   TEKNISI_SKYLIFT: {
-    label: "Teknisi Sky-Lift",
-    actorName: "Ketua Regu Teknisi Sky-Lift Lapangan",
-    hint: "Bawa suku cadang sesuai kode F1–F6, check-in GPS (otorisasi panel), & verifikasi pemulihan.",
+    label: "Teknisi Lapangan",
+    actorName: "Ketua Regu Teknisi Lapangan",
+    hint: "Bawa suku cadang sesuai dugaan gangguan, check-in di lokasi tiang, dan cek hasil perbaikan.",
   },
   AUDITOR_PJU: {
     label: "Auditor PJU & Pemda",
     actorName: "Auditor Energi & Kepatuhan Pemda Solo Raya",
-    hint: "Verifikasi penghematan 2-aliran, PP 4/2023 PBJT-TL, SNI 7391, & rantai hash log.",
+    hint: "Periksa estimasi penghematan listrik & perawatan serta rantai log pemeriksaan.",
   },
+};
+
+export const FAULT_FAMILY_PLAIN_LABEL: Record<string, string> = {
+  NONE: "Normal",
+  F1: "Panel tertutup atau kotor",
+  F2: "Baterai melemah",
+  F3: "Pengisi surya (SCC) bermasalah",
+  F4: "Lampu atau driver LED putus",
+  F5: "Suhu berlebih",
+  F6: "Kotak baterai dibuka paksa",
 };
 
 export const FAULT_FAMILY_LABEL: Record<string, string> = {
   NONE: "Normal",
-  F1: "F1 · Panel / Shading",
-  F2: "F2 · Baterai SoH/UVLO",
-  F3: "F3 · SCC MPPT",
-  F4: "F4 · Driver & LED",
-  F5: "F5 · Suhu Berlebih",
-  F6: "F6 · Sabotase & Pencurian",
+  F1: "Panel tertutup atau kotor (F1)",
+  F2: "Baterai melemah (F2)",
+  F3: "Pengisi surya / SCC (F3)",
+  F4: "Lampu atau driver LED (F4)",
+  F5: "Suhu berlebih (F5)",
+  F6: "Kotak dibuka paksa (F6)",
 };

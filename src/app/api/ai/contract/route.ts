@@ -54,14 +54,14 @@ export async function GET() {
     const invocations = db
       .prepare(`SELECT * FROM ai_invocations ORDER BY created_at DESC LIMIT 25`)
       .all() as AiInvocationRecord[];
+    const externalEndpointConfigured =
+      process.env.REKASURYA_DEMO_ONLY !== "1" && Boolean(process.env.REKASURYA_AI_SERVICE_URL);
 
     return jsonOk({
       contractVersion: AI_CONTRACT_VERSION,
-      adapterMode: process.env.REKASURYA_AI_SERVICE_URL
-        ? "EXTERNAL_POC_ASTRA"
-        : "MOCK_EWMA_DETERMINISTIC",
-      isSimulatedPoc: !process.env.REKASURYA_AI_SERVICE_URL,
-      externalEndpointConfigured: Boolean(process.env.REKASURYA_AI_SERVICE_URL),
+      adapterMode: externalEndpointConfigured ? "EXTERNAL_POC_ASTRA" : "MOCK_EWMA_DETERMINISTIC",
+      isSimulatedPoc: !externalEndpointConfigured,
+      externalEndpointConfigured,
       honestyNotice:
         "Adaptor AI saat ini menjalankan model deterministik EWMA & fisika panel/baterai sesuai kontrak JSON v1.0.0, menunggu endpoint PoC Python tim AI (GPT Astra).",
       sampleRequest: SAMPLE_REQUEST,

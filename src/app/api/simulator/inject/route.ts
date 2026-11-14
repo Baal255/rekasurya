@@ -3,7 +3,7 @@ import { z } from "zod";
 import { extractActor, handleRouteError, jsonOk } from "@/lib/api-utils";
 import { getDb } from "@/lib/db";
 import { injectSimulationScenario } from "@/lib/domain/telemetry";
-import { SIMULATION_SCENARIOS, type SimulationScenarioId } from "@/lib/simulator/engine";
+import { SIMULATION_SCENARIOS, type SimulationScenarioId } from "@/lib/simulator/scenarios";
 
 export const dynamic = "force-dynamic";
 

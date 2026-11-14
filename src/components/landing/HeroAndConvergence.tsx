@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { DeviceStatusBadge, FaultFamilyBadge } from "@/components/StatusBadges";
-import { formatNum } from "@/lib/format";
+import { FAULT_FAMILY_PLAIN_LABEL, formatNum } from "@/lib/format";
 import type { DeviceRecord } from "@/lib/types";
 
 interface HeroAndConvergenceProps {
@@ -22,16 +22,106 @@ interface HeroAndConvergenceProps {
   aiContractVersion: string;
 }
 
+type WorkflowStepKey = "pantau" | "kenali" | "siapkan" | "cek";
+
+const WORKFLOW_STEPS: Array<{
+  key: WorkflowStepKey;
+  num: string;
+  title: string;
+  shortDesc: string;
+  detailHeading: string;
+  detailText: string;
+  highlightZone: string;
+  operatorGain: string;
+}> = [
+  {
+    key: "pantau",
+    num: "1",
+    title: "Pantau",
+    shortDesc: "Kondisi panel, baterai, dan lampu terpantau terpusat.",
+    detailHeading: "Memantau kondisi tiang dan aduan warga dari satu tempat",
+    detailText:
+      "Setiap tiang melaporkan daya pengisian panel surya, sisa tegangan baterai, nyala lampu LED, serta kondisi pintu kotak baterai. Aduan warga juga langsung dicocokkan ke tiang terdekat.",
+    highlightZone: "Data sensor tiang & laporan masuk",
+    operatorGain: "Petugas tidak lagi menunggu laporan padam berhari-hari lewat patroli keliling.",
+  },
+  {
+    key: "kenali",
+    num: "2",
+    title: "Kenali Gangguan",
+    shortDesc: "Bedakan cuaca mendung dari kerusakan pada satu tiang.",
+    detailHeading: "Membandingkan tiang sekitar agar dugaan penyebab lebih akurat",
+    detailText:
+      "Sistem membandingkan daya panel dengan tiang sekitar untuk membedakan pengaruh cuaca dari gangguan pada satu tiang. Jika hanya satu tiang yang turun, sistem memberi dugaan awal seperti Panel tertutup pohon atau kotor (F1), Baterai melemah (F2), atau Lampu putus (F4).",
+    highlightZone: "Perbandingan tiang sekitar & dugaan gangguan",
+    operatorGain: "Menghindari salah tebak antara kerusakan lampu LED, panel kotor, atau baterai lemah.",
+  },
+  {
+    key: "siapkan",
+    num: "3",
+    title: "Siapkan Teknisi",
+    shortDesc: "Lokasi tiang dan daftar suku cadang siap sebelum berangkat.",
+    detailHeading: "Tugas teknisi lengkap dengan lokasi dan daftar suku cadang",
+    detailText:
+      "Dugaan gangguan diteruskan menjadi tugas teknisi yang mencantumkan titik koordinat tiang, dugaan penyebab, serta komponen yang perlu dibawa (misalnya pembersih panel atau baterai pengganti LFP) sebelum regu berangkat.",
+    highlightZone: "Lokasi tiang & daftar suku cadang",
+    operatorGain: "Sasaran operasional: pemeriksaan dan penanganan ditargetkan tuntas dalam satu kunjungan terarah.",
+  },
+  {
+    key: "cek",
+    num: "4",
+    title: "Cek Hasil Perbaikan",
+    shortDesc: "Pastikan lampu dan pengisian kembali normal sebelum tugas ditutup.",
+    detailHeading: "Pemeriksaan ulang pembacaan sensor setelah perbaikan",
+    detailText:
+      "Setelah teknisi selesai membersihkan panel atau mengganti komponen di lokasi, sistem memeriksa kembali tegangan baterai dan pengisian panel sebelum tugas ditutup dan dicatat di log pemeriksaan.",
+    highlightZone: "Verifikasi pembacaan sensor & catatan audit",
+    operatorGain: "Memastikan tiang benar-benar pulih sebelum teknisi meninggalkan lokasi.",
+  },
+];
+
+function getPlainComparisonCopy(device: DeviceRecord): string {
+  if (device.spatial_verdict === "CUACA_SERUAS") {
+    return "Daya panel turun bersamaan dengan tiang sekitar (pengaruh cuaca mendung, bukan gangguan satu tiang).";
+  }
+  if (device.spatial_verdict === "ANOMALI_LOKAL") {
+    return "Tiang sekitar tetap normal — sistem membandingkan daya panel dengan tiang sekitar dan menandai gangguan khusus pada tiang ini.";
+  }
+  return "Daya panel sejalan dengan tiang sekitar di koridor yang sama.";
+}
+
+function getSuggestedCheckCopy(family: string): string {
+  switch (family) {
+    case "F1":
+      return "Siapkan pembersih panel atau cek dahan pohon yang menghalangi cahaya matahari.";
+    case "F2":
+      return "Siapkan baterai LiFePO4 25,6 V pengganti dan cek konektor perlindungan baterai.";
+    case "F3":
+      return "Siapkan pengontrol pengisian surya (SCC MPPT) dan cek sekring jalur panel.";
+    case "F4":
+      return "Siapkan unit driver lampu LED 40 W dan cek sambungan kabel di lengan tiang.";
+    case "F5":
+      return "Cek ventilasi kotak baterai dan suhu kerja pengisi surya di dalam boks.";
+    case "F6":
+      return "Segera cek keamanan tiang di lokasi; baterai cadangan masih aktif mengirim lokasi.";
+    default:
+      return "Kondisi normal. Tidak perlu penggantian suku cadang saat ini.";
+  }
+}
+
 export function HeroAndConvergence({
   stats,
   sampleDevices,
   corridorCount,
   auditValid,
-  aiContractVersion,
 }: HeroAndConvergenceProps) {
   const [selectedId, setSelectedId] = useState<string>(sampleDevices[0]?.id ?? "");
+  const [activeStepKey, setActiveStepKey] = useState<WorkflowStepKey>("pantau");
+
   const activeDevice =
     sampleDevices.find((d) => d.id === selectedId) ?? sampleDevices[0] ?? null;
+  const activeStep =
+    WORKFLOW_STEPS.find((s) => s.key === activeStepKey) ?? WORKFLOW_STEPS[0];
 
   return (
     <>
@@ -43,10 +133,9 @@ export function HeroAndConvergence({
         data-nav="dark"
         className="relative bg-[#062D5B] text-white rounded-b-[28px] sm:rounded-b-[40px] slab-shadow grain-subtle overflow-hidden"
       >
-        {/* Latar garis teknik halus (tanpa blob atau glow dekoratif) */}
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 opacity-[0.07]"
+          className="pointer-events-none absolute inset-0 opacity-[0.06]"
           style={{
             backgroundImage:
               "linear-gradient(to right, #FFFFFF 1px, transparent 1px), linear-gradient(to bottom, #FFFFFF 1px, transparent 1px)",
@@ -56,33 +145,29 @@ export function HeroAndConvergence({
 
         <div className="relative max-w-[1280px] mx-auto px-4 sm:px-6 pt-24 sm:pt-28 pb-12 sm:pb-16">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start">
-            {/* Kolom Kiri — Narasi Operasional Inti */}
-            <div className="lg:col-span-7 space-y-6 min-w-0">
-              <div className="flex flex-wrap items-center gap-3">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#041E3E] border border-[#FEB124]/45 text-[#FFD585] text-[11px] font-mono">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#FEB124]" />
-                  <span>KIT KONVERSI &amp; RETROFIT PJUTS • SOLO RAYA</span>
-                </span>
-              </div>
-
-              <h1 className="text-[30px] sm:text-[42px] lg:text-[46px] font-semibold tracking-[-0.025em] leading-[1.12] text-white">
-                Satu trip sky-lift yang tepat,{" "}
-                <span className="text-[#FFD585]">dari deteksi hingga verifikasi.</span>
-              </h1>
-
-              <p className="text-[14.5px] sm:text-[16px] text-white/80 leading-relaxed max-w-2xl">
-                Platform pemantauan, diagnosis gangguan F1–F6 berbasis residu EWMA sekoridor, dan
-                eksekusi pemeliharaan Penerangan Jalan Umum Tenaga Surya di{" "}
-                {corridorCount} koridor Solo Raya. Dirancang untuk memangkas patroli buta, salah
-                ganti suku cadang, dan keterlambatan deteksi pencurian baterai.
+            {/* Kolom Kiri — Narasi Jelas untuk Pengelola & Juri */}
+            <div className="lg:col-span-7 space-y-5 min-w-0">
+              <p className="text-[13px] font-medium text-[#FFD585]">
+                Sistem retrofit lampu jalan tenaga surya &amp; pemantauan gangguan · {corridorCount} koridor contoh Solo Raya
               </p>
 
-              <div className="flex flex-wrap items-center gap-3 pt-1">
-                <Link
-                  href="/console"
-                  className="ops-btn-amber px-5 py-2.5 text-[13.5px] inline-flex items-center gap-2 shadow-sm"
+              <h1 className="text-[30px] sm:text-[42px] lg:text-[46px] font-semibold tracking-[-0.025em] leading-[1.12] text-white">
+                Lampu jalan padam? Cek dugaan penyebabnya sebelum teknisi berangkat.
+              </h1>
+
+              <p className="text-[15px] sm:text-[16.5px] text-white/85 leading-relaxed max-w-2xl">
+                REKASURYA mengubah lampu jalan yang memakai listrik PLN menjadi lampu tenaga surya
+                dengan memanfaatkan tiang yang sudah ada. Sistem ini juga membantu petugas memantau
+                lampu jalan tenaga surya yang sudah terpasang, melihat dugaan penyebab gangguan, dan
+                menyiapkan suku cadang sebelum berangkat.
+              </p>
+
+              <div className="flex flex-wrap items-center gap-4 pt-1">
+                <a
+                  href="#pratinjau"
+                  className="ops-btn-amber px-5 py-3 text-[14px] inline-flex items-center gap-2 shadow-sm"
                 >
-                  <span>Buka Konsol Operasional</span>
+                  <span>Coba Simulasi Gangguan</span>
                   <svg
                     className="w-4 h-4"
                     viewBox="0 0 24 24"
@@ -93,93 +178,88 @@ export function HeroAndConvergence({
                     <line x1="5" y1="12" x2="19" y2="12" />
                     <polyline points="12 5 19 12 12 19" />
                   </svg>
-                </Link>
-
-                <Link
-                  href="/simulator"
-                  className="px-4 py-2.5 rounded-[7px] border border-white/25 bg-[#041E3E]/60 hover:bg-[#093B75] text-white text-[13px] font-medium transition-colors"
-                >
-                  Uji Simulasi Gangguan F1–F6
-                </Link>
+                </a>
 
                 <a
-                  href="#konvergensi"
-                  className="px-2 py-2 text-[12.5px] font-medium text-[#FFD585] hover:text-white transition-colors"
+                  href="#cara-kerja"
+                  className="px-3 py-2.5 text-[14px] font-medium text-[#FFD585] hover:text-white underline underline-offset-4 transition-colors"
                 >
-                  Lihat Cara Kerja ↓
+                  Lihat Cara Kerja
                 </a>
               </div>
 
-              {/* Strip Fakta Basis Data Langsung */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-white/15">
+              <p className="text-[13.5px] text-white/75 leading-relaxed max-w-2xl bg-[#041E3E]/65 border border-white/12 rounded-xl px-4 py-3">
+                Contoh nyata di lapangan: saat lampu padam, teknisi bisa terlanjur membawa pengganti
+                lampu LED padahal masalah sebenarnya adalah panel surya tertutup rimbun pohon atau
+                baterai yang mulai melemah.
+              </p>
+
+              {/* Ringkasan Angka Simulasi */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-white/15">
                 <div className="rounded-lg bg-[#041E3E]/70 border border-white/12 px-3.5 py-2.5">
-                  <div className="text-[10.5px] uppercase tracking-wider text-white/60 font-medium">
-                    Armada Terpantau
+                  <div className="text-[11.5px] text-white/70 font-medium">
+                    Tiang simulasi
                   </div>
                   <div className="text-[19px] font-semibold font-mono tabular-nums text-white mt-0.5">
                     {stats.totalDevices}{" "}
-                    <span className="text-[12px] font-normal text-white/65">Tiang</span>
+                    <span className="text-[12px] font-sans font-normal text-white/70">tiang</span>
                   </div>
                 </div>
                 <div className="rounded-lg bg-[#041E3E]/70 border border-white/12 px-3.5 py-2.5">
-                  <div className="text-[10.5px] uppercase tracking-wider text-white/60 font-medium">
-                    Gangguan Aktif
+                  <div className="text-[11.5px] text-white/70 font-medium">
+                    Perlu diperiksa
                   </div>
                   <div className="text-[19px] font-semibold font-mono tabular-nums text-[#FFD585] mt-0.5">
                     {stats.activeFaults}{" "}
-                    <span className="text-[12px] font-normal text-white/65">Titik</span>
+                    <span className="text-[12px] font-sans font-normal text-white/70">titik</span>
                   </div>
                 </div>
                 <div className="rounded-lg bg-[#041E3E]/70 border border-white/12 px-3.5 py-2.5">
-                  <div className="text-[10.5px] uppercase tracking-wider text-white/60 font-medium">
-                    Work Order Terbuka
+                  <div className="text-[11.5px] text-white/70 font-medium">
+                    Tugas teknisi terbuka
                   </div>
                   <div className="text-[19px] font-semibold font-mono tabular-nums text-white mt-0.5">
                     {stats.openWorkOrders}{" "}
-                    <span className="text-[12px] font-normal text-white/65">Tugas</span>
+                    <span className="text-[12px] font-sans font-normal text-white/70">tugas</span>
                   </div>
                 </div>
                 <div className="rounded-lg bg-[#041E3E]/70 border border-white/12 px-3.5 py-2.5">
-                  <div className="text-[10.5px] uppercase tracking-wider text-white/60 font-medium">
-                    Integritas Audit
+                  <div className="text-[11.5px] text-white/70 font-medium">
+                    Catatan pemeriksaan
                   </div>
-                  <div className="text-[14px] font-semibold font-mono text-[#FFD585] mt-1">
-                    {auditValid ? "SHA-256 Utuh" : "Perlu Tinjau"}
+                  <div className="text-[13.5px] font-semibold text-[#FFD585] mt-1">
+                    {auditValid ? "Terverifikasi" : "Perlu tinjau"}
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Kolom Kanan — Kartu Telemetri 3-Kanal Langsung dari SQLite */}
+            {/* Kolom Kanan — Contoh Inspeksi Kondisi Tiang (Bahasa Petugas) */}
             <div className="lg:col-span-5 min-w-0">
               <div className="rounded-2xl bg-[#041E3E] border border-white/15 p-4 sm:p-5 space-y-4">
-                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/12 pb-3">
-                  <div>
-                    <div className="text-[11px] font-mono uppercase tracking-wider text-[#FFD585]">
-                      INSPEKTOR NODE LANGSUNG (SQLITE)
-                    </div>
-                    <div className="text-[13px] font-semibold text-white">
-                      Pilih tiang untuk membandingkan residu Zₜ sekoridor
-                    </div>
+                <div className="border-b border-white/12 pb-3">
+                  <div className="text-[14px] font-semibold text-white">
+                    Contoh Kondisi Tiang Sebelum Teknisi Berangkat
                   </div>
-                  <span className="px-2 py-0.5 rounded text-[10.5px] font-mono bg-white/10 text-white/80 border border-white/15">
-                    AI v{aiContractVersion}
-                  </span>
+                  <div className="text-[12px] text-white/70 mt-0.5">
+                    Data simulasi · Pilih kode tiang untuk melihat dugaan gangguan &amp; suku cadang
+                  </div>
                 </div>
 
-                {/* Pemilih Tiang Langsung */}
-                <div className="flex flex-wrap gap-1.5">
+                {/* Pemilih Tiang */}
+                <div className="flex flex-wrap gap-1.5" role="group" aria-label="Pilih contoh tiang">
                   {sampleDevices.map((dev) => {
                     const isSelected = activeDevice?.id === dev.id;
                     return (
                       <button
                         key={dev.id}
                         type="button"
+                        aria-pressed={isSelected}
                         onClick={() => setSelectedId(dev.id)}
-                        className={`px-2.5 py-1.5 rounded-md text-[11.5px] font-mono transition-colors cursor-pointer border ${
+                        className={`px-2.5 py-1.5 rounded-md text-[12px] font-mono transition-colors cursor-pointer border focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FEB124] ${
                           isSelected
                             ? "bg-[#FEB124] text-[#041E3E] border-[#E59A10] font-semibold"
-                            : "bg-white/5 text-white/80 border-white/15 hover:bg-white/10"
+                            : "bg-white/5 text-white/85 border-white/15 hover:bg-white/10"
                         }`}
                       >
                         {dev.id}
@@ -190,93 +270,90 @@ export function HeroAndConvergence({
 
                 {activeDevice && (
                   <div className="space-y-3">
-                    <div className="rounded-xl bg-white text-[#0B192C] p-3.5 space-y-3">
+                    <div className="rounded-xl bg-white text-[#0B192C] p-3.5 sm:p-4 space-y-3">
                       <div className="flex flex-wrap items-start justify-between gap-2">
-                        <div>
-                          <div className="flex items-center gap-2">
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
                             <span className="font-mono font-bold text-[14px] text-[#062D5B]">
                               {activeDevice.id}
                             </span>
-                            <FaultFamilyBadge
-                              family={activeDevice.fault_family}
-                              subCode={activeDevice.fault_sub_code}
-                            />
+                            <DeviceStatusBadge status={activeDevice.status} />
                           </div>
-                          <div className="text-[12px] text-[#334155] mt-0.5">
+                          <div className="text-[12px] text-[#334155] mt-1">
                             {activeDevice.pole_label} · {activeDevice.corridor_name}
                           </div>
                         </div>
-                        <DeviceStatusBadge status={activeDevice.status} />
                       </div>
 
-                      {/* 3 Kanal Terisolasi */}
-                      <div className="grid grid-cols-3 gap-2 pt-2 border-t border-[#DCE3EC] text-[11.5px]">
+                      {/* Dugaan Penyebab Utama (Bahasa Jelas Terlebih Dulu) */}
+                      <div className="rounded-lg bg-[#F4F6F9] border border-[#DCE3EC] p-3 space-y-1.5">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <span className="text-[11px] font-medium text-[#5B6B7F]">
+                            Dugaan kondisi tiang
+                          </span>
+                          <FaultFamilyBadge
+                            family={activeDevice.fault_family}
+                            subCode={activeDevice.fault_sub_code}
+                          />
+                        </div>
+                        <div className="text-[13.5px] font-semibold text-[#062D5B]">
+                          {FAULT_FAMILY_PLAIN_LABEL[activeDevice.fault_family] ?? activeDevice.fault_family}
+                        </div>
+                        <p className="text-[12px] text-[#334155]">
+                          {getSuggestedCheckCopy(activeDevice.fault_family)}
+                        </p>
+                      </div>
+
+                      {/* Pengukuran Utama 3 Bagian */}
+                      <div className="grid grid-cols-3 gap-2 text-[11.5px]">
                         <div className="rounded-lg bg-[#F4F6F9] p-2">
-                          <div className="text-[10px] font-semibold text-[#5B6B7F] uppercase">
-                            Kanal A • PV
+                          <div className="text-[11px] font-medium text-[#5B6B7F]">
+                            Panel surya
                           </div>
                           <div className="font-mono font-semibold text-[#062D5B] tabular-nums mt-0.5">
                             {formatNum(activeDevice.pv_p, 0)} W
                           </div>
-                          <div className="text-[10px] font-mono text-[#5B6B7F]">
-                            {formatNum(activeDevice.pv_v, 1)}V / {formatNum(activeDevice.pv_i, 1)}A
+                          <div className="text-[10.5px] font-mono text-[#5B6B7F]">
+                            {formatNum(activeDevice.pv_v, 1)} V
                           </div>
                         </div>
                         <div className="rounded-lg bg-[#F4F6F9] p-2">
-                          <div className="text-[10px] font-semibold text-[#5B6B7F] uppercase">
-                            Kanal B • LFP
+                          <div className="text-[11px] font-medium text-[#5B6B7F]">
+                            Baterai
                           </div>
                           <div className="font-mono font-semibold text-[#062D5B] tabular-nums mt-0.5">
-                            SoC {formatNum(activeDevice.soc_pct, 0)}%
+                            Sisa {formatNum(activeDevice.soc_pct, 0)}%
                           </div>
-                          <div className="text-[10px] font-mono text-[#5B6B7F]">
-                            {formatNum(activeDevice.batt_v, 1)}V • {formatNum(activeDevice.temp_batt_c, 0)}°C
+                          <div className="text-[10.5px] font-mono text-[#5B6B7F]">
+                            {formatNum(activeDevice.batt_v, 1)} V · {formatNum(activeDevice.temp_batt_c, 0)}°C
                           </div>
                         </div>
                         <div className="rounded-lg bg-[#F4F6F9] p-2">
-                          <div className="text-[10px] font-semibold text-[#5B6B7F] uppercase">
-                            Kanal C • LED
+                          <div className="text-[11px] font-medium text-[#5B6B7F]">
+                            Lampu LED
                           </div>
                           <div className="font-mono font-semibold text-[#062D5B] tabular-nums mt-0.5">
                             {formatNum(activeDevice.load_p, 0)} W
                           </div>
-                          <div className="text-[10px] font-mono text-[#5B6B7F]">
-                            PWM {activeDevice.pwm_duty}% · {formatNum(activeDevice.lux, 0)} lux
+                          <div className="text-[10.5px] font-mono text-[#5B6B7F]">
+                            Redup {activeDevice.pwm_duty}%
                           </div>
                         </div>
                       </div>
 
-                      {/* Kesimpulan Spasial EWMA */}
-                      <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-[#F3F6FA] border border-[#DCE3EC] px-3 py-2 text-[11.5px]">
-                        <div>
-                          <span className="text-[#5B6B7F]">Residu EWMA Zₜ: </span>
-                          <span
-                            className={`font-mono font-semibold tabular-nums ${
-                              activeDevice.ewma_z < activeDevice.ewma_lcl
-                                ? "text-[#B91C1C]"
-                                : "text-[#062D5B]"
-                            }`}
-                          >
-                            {formatNum(activeDevice.ewma_z, 1)} W
-                          </span>
-                          <span className="text-[#5B6B7F] font-mono">
-                            {" "}
-                            (Tetangga {formatNum(activeDevice.neighbor_z_median, 1)} W)
-                          </span>
-                        </div>
-                        <span className="font-mono font-semibold text-[#062D5B]">
-                          {activeDevice.spatial_verdict}
-                        </span>
+                      {/* Perbandingan dengan Tiang Sekitar */}
+                      <div className="rounded-lg bg-[#F3F6FA] border border-[#DCE3EC] px-3 py-2 text-[11.5px] text-[#334155]">
+                        {getPlainComparisonCopy(activeDevice)}
                       </div>
                     </div>
 
-                    <div className="flex flex-wrap items-center justify-between gap-2 text-[11.5px] text-white/75 px-1">
-                      <span>Isolasi galvanis: ADuM1250 + B0505S</span>
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-[12px] text-white/75 px-1">
+                      <span>Detail teknis tersedia di halaman perangkat</span>
                       <Link
                         href={`/devices/${activeDevice.id}`}
                         className="font-semibold text-[#FFD585] hover:underline shrink-0"
                       >
-                        Buka Detail {activeDevice.id} →
+                        Lihat detail {activeDevice.id} →
                       </Link>
                     </div>
                   </div>
@@ -288,150 +365,182 @@ export function HeroAndConvergence({
       </section>
 
       {/* ================================================================
-          LAPIS 2 — MASALAH NYATA & KONVERGENSI 3 SUMBER KE 1 WORK ORDER
+          LAPIS 2 — CARA KERJA INTERAKTIF 4 LANGKAH
           ================================================================ */}
-      <section id="konvergensi" data-nav="light" className="py-14 sm:py-20 bg-[#F4F6F9]">
-        <div className="max-w-[1280px] mx-auto px-4 sm:px-6 space-y-10">
+      <section id="cara-kerja" data-nav="light" className="py-14 sm:py-20 bg-[#F4F6F9]">
+        <span id="konvergensi" className="sr-only" aria-hidden="true" />
+        <div className="max-w-[1280px] mx-auto px-4 sm:px-6 space-y-8">
           <div className="max-w-3xl space-y-2.5">
-            <div className="text-[11px] font-mono font-semibold uppercase tracking-widest text-[#B45309]">
-              01 · AKAR MASALAH &amp; KONVERGENSI SINYAL
-            </div>
             <h2 className="text-[24px] sm:text-[32px] font-semibold tracking-tight text-[#062D5B] leading-tight">
-              Mengakhiri siklus patroli buta, salah bawa komponen, dan baterai hilang tanpa alarm.
+              Cara Kerja: dari laporan atau sensor hingga pemeriksaan tuntas
             </h2>
-            <p className="text-[14px] sm:text-[15px] text-[#334155] leading-relaxed">
-              Pada armada PJUTS warisan di lapangan, lampu padam diperlakukan sama oleh operator
-              maupun warga. Kru sky-lift datang membawa driver LED baru, padahal penyebabnya panel
-              tertutup tajuk pohon atau baterai mengalami degradasi SoH. REKASURYA memadukan tiga
-              sinyal independen sebelum regu diberangkatkan.
+            <p className="text-[14.5px] sm:text-[15.5px] text-[#334155] leading-relaxed">
+              Ketika lampu jalan padam, regu sering datang membawa lampu LED pengganti padahal
+              masalahnya ada di panel yang tertutup pohon atau baterai yang lemah. Pilih salah satu
+              tahapan di bawah untuk melihat bagaimana REKASURYA membantu petugas menyiapkan
+              penanganan sebelum berangkat.
             </p>
           </div>
 
-          {/* Diagram Konvergensi: 3 Sinyal -> Mesin Klasifikasi -> 1 Work Order Presisi */}
+          {/* 4 Langkah Interaktif (Vertikal di Mobile, 4 Kolom di Desktop) */}
+          <div
+            className="flex flex-col md:grid md:grid-cols-4 gap-3"
+            role="group"
+            aria-label="Tahapan Cara Kerja REKASURYA"
+          >
+            {WORKFLOW_STEPS.map((step, idx) => {
+              const isSelected = step.key === activeStep.key;
+              return (
+                <button
+                  key={step.key}
+                  type="button"
+                  aria-pressed={isSelected}
+                  onClick={() => setActiveStepKey(step.key)}
+                  className={`text-left rounded-xl p-4 border transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FEB124] ${
+                    isSelected
+                      ? "bg-[#062D5B] text-white border-[#062D5B] shadow-[var(--sh-2)]"
+                      : "bg-white text-[#0B192C] border-[#DCE3EC] hover:border-[#062D5B]/50"
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span
+                      className={`text-[12px] font-semibold ${
+                        isSelected ? "text-[#FFD585]" : "text-[#5B6B7F]"
+                      }`}
+                    >
+                      Langkah {step.num}
+                    </span>
+                    {idx < WORKFLOW_STEPS.length - 1 && (
+                      <span
+                        aria-hidden="true"
+                        className={`hidden md:inline text-[13px] ${
+                          isSelected ? "text-[#FEB124]" : "text-[#94A3B8]"
+                        }`}
+                      >
+                        →
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-[16px] font-semibold mt-1">{step.title}</div>
+                  <p
+                    className={`text-[12.5px] mt-1 leading-relaxed ${
+                      isSelected ? "text-white/85" : "text-[#334155]"
+                    }`}
+                  >
+                    {step.shortDesc}
+                  </p>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Panel Penjelasan & Sorotan Contoh Dashboard (Tinggi stabil agar tidak melompat) */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
-            {/* 3 Sinyal Masukan */}
-            <div className="lg:col-span-5 space-y-3">
-              <div className="ops-card p-4 border-l-4 border-l-[#062D5B]">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-[11px] font-mono font-semibold text-[#062D5B]">
-                    SUMBER 1 · TELEMETRI 3-KANAL &amp; TETANGGA
-                  </span>
-                  <span className="text-[10.5px] font-mono text-[#5B6B7F]">INA228 + NTC</span>
-                </div>
-                <p className="text-[13px] font-medium text-[#0B192C] mt-1">
-                  Membandingkan residu EWMA Zₜ tiap tiang terhadap median tetangga sekoridor.
-                </p>
-                <p className="text-[12px] text-[#5B6B7F] mt-1">
-                  Mendung serentak (Zₜ turun bersama) tidak memicu alarm palsu; bayangan lokal atau
-                  panel terputus langsung terisolasi pada 1 tiang.
-                </p>
-              </div>
-
-              <div className="ops-card p-4 border-l-4 border-l-[#FEB124]">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-[11px] font-mono font-semibold text-[#B45309]">
-                    SUMBER 2 · PROTEKSI ANTI-TAMPER &amp; BACKUP 18650
-                  </span>
-                  <span className="text-[10.5px] font-mono text-[#5B6B7F]">LIS3DH + GNSS</span>
-                </div>
-                <p className="text-[13px] font-medium text-[#0B192C] mt-1">
-                  Sakelar pintu boks, getaran akselerometer, dan koordinat geofence tetap aktif
-                  meski baterai utama dicuri atau kabel diputus.
-                </p>
-                <p className="text-[12px] text-[#5B6B7F] mt-1">
-                  Menekan alarm palsu ketika teknisi melakukan check-in GPS dalam radius 90 meter
-                  saat membuka boks pemeliharaan.
-                </p>
-              </div>
-
-              <div className="ops-card p-4 border-l-4 border-l-[#15803D]">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-[11px] font-mono font-semibold text-[#15803D]">
-                    SUMBER 3 · TRIASE PENGADUAN WARGA
-                  </span>
-                  <span className="text-[10.5px] font-mono text-[#5B6B7F]">Alur Gaya ULAS</span>
-                </div>
-                <p className="text-[13px] font-medium text-[#0B192C] mt-1">
-                  Laporan warga dipetakan otomatis ke koordinat tiang terdekat (≤150 meter) dan
-                  ditautkan ke status sensor terkini.
-                </p>
-                <p className="text-[12px] text-[#5B6B7F] mt-1">
-                  Pelapor menerima linimasa Open → Responded → Process → Resolved berbasis bukti
-                  telemetri, bukan sekadar catatan manual.
-                </p>
-              </div>
-            </div>
-
-            {/* Panah & Jantung Keputusan di Tengah */}
-            <div className="lg:col-span-3 flex flex-col justify-center">
-              <div className="rounded-2xl bg-[#062D5B] text-white p-5 space-y-3 shadow-[var(--sh-2)]">
-                <div className="text-[10.5px] font-mono uppercase tracking-wider text-[#FFD585]">
-                  MESIN KONVERGENSI • KONTRAK v{aiContractVersion}
-                </div>
-                <h3 className="text-[17px] font-semibold leading-snug">
-                  Klasifikasi Deterministik + Fallback Aman
-                </h3>
-                <ul className="space-y-2 text-[12px] text-white/85">
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#FEB124] font-mono">01</span>
-                    <span>Validasi ketat skema Zod sensor &amp; batas fisik</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#FEB124] font-mono">02</span>
-                    <span>Uji korelasi spasial sekoridor sebelum naik eskalasi</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#FEB124] font-mono">03</span>
-                    <span>Pemetaan sub-kode gangguan ke daftar SKU suku cadang</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#FEB124] font-mono">04</span>
-                    <span>Catat keputusan ke rantai hash SHA-256 audit log</span>
-                  </li>
-                </ul>
-              </div>
-            </div>
-
-            {/* Keluaran Tunggal: Work Order Siap Berangkat */}
-            <div className="lg:col-span-4 flex flex-col justify-between ops-card p-5 bg-white">
+            <div className="lg:col-span-5 ops-card p-5 sm:p-6 bg-white flex flex-col justify-between min-h-[260px]">
               <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="px-2.5 py-0.5 rounded bg-[#FFF8E7] border border-[#FEB124]/60 text-[11px] font-mono font-semibold text-[#062D5B]">
-                    KELUARAN EKSEKUSI
-                  </span>
-                  <span className="text-[11px] font-mono text-[#5B6B7F]">1 Kunjungan Tuntas</span>
+                <div className="text-[12px] font-semibold text-[#B45309]">
+                  Tahap terpilih: {activeStep.num}. {activeStep.title}
+                </div>
+                <h3 className="text-[19px] font-semibold text-[#062D5B] leading-snug">
+                  {activeStep.detailHeading}
+                </h3>
+                <p className="text-[13.5px] text-[#334155] leading-relaxed">
+                  {activeStep.detailText}
+                </p>
+              </div>
+
+              <div className="mt-4 pt-3 border-t border-[#DCE3EC] text-[12.5px] text-[#062D5B] font-medium">
+                {activeStep.operatorGain}
+              </div>
+            </div>
+
+            {/* Ilustrasi Contoh Dashboard dengan Area Sorotan Dinamis */}
+            <div className="lg:col-span-7 ops-card p-5 sm:p-6 bg-white min-h-[260px] flex flex-col justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-[#DCE3EC]">
+                <div>
+                  <div className="text-[13px] font-semibold text-[#062D5B]">
+                    Bagian yang disorot pada contoh kasus tiang SKH-107
+                  </div>
+                  <div className="text-[11.5px] text-[#5B6B7F]">
+                    Menampilkan: {activeStep.highlightZone}
+                  </div>
+                </div>
+                <span className="text-[11.5px] text-[#5B6B7F]">
+                  Data simulasi contoh
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 my-4">
+                <div
+                  className={`rounded-lg border p-3 transition-colors ${
+                    activeStep.key === "pantau"
+                      ? "bg-[#FFF8E7] border-[#FEB124] ring-2 ring-[#FEB124]/40"
+                      : "bg-[#F8FAFC] border-[#DCE3EC] opacity-75"
+                  }`}
+                >
+                  <div className="text-[11.5px] font-semibold text-[#062D5B]">
+                    1. Pembacaan Sensor &amp; Aduan
+                  </div>
+                  <div className="text-[12.5px] text-[#334155] mt-1">
+                    Tegangan baterai turun menjadi 21,9 V · Laporan warga masuk 45 m dari tiang.
+                  </div>
                 </div>
 
-                <h3 className="text-[18px] font-semibold text-[#062D5B]">
-                  Work Order Presisi Regu Sky-Lift
-                </h3>
-                <p className="text-[13px] text-[#334155]">
-                  Setiap gangguan terverifikasi melahirkan Work Order terstruktur yang langsung
-                  menyebut tiang, dugaan akar masalah, unit kendaraan, SLA, dan komponen yang wajib
-                  dibawa ke kabin sky-lift.
-                </p>
-
-                <div className="rounded-lg bg-[#F4F6F9] border border-[#DCE3EC] p-3 space-y-2 text-[12px]">
-                  <div className="flex items-center justify-between text-[#5B6B7F]">
-                    <span>Sebelum REKASURYA</span>
-                    <span className="font-mono text-[#B91C1C]">Patroli buta &amp; 2–3× kunjungan</span>
+                <div
+                  className={`rounded-lg border p-3 transition-colors ${
+                    activeStep.key === "kenali"
+                      ? "bg-[#FFF8E7] border-[#FEB124] ring-2 ring-[#FEB124]/40"
+                      : "bg-[#F8FAFC] border-[#DCE3EC] opacity-75"
+                  }`}
+                >
+                  <div className="text-[11.5px] font-semibold text-[#062D5B]">
+                    2. Perbandingan &amp; Dugaan Gangguan
                   </div>
-                  <div className="border-t border-[#DCE3EC] pt-2 flex items-center justify-between text-[#062D5B] font-semibold">
-                    <span>Dengan REKASURYA</span>
-                    <span className="font-mono text-[#15803D]">SKU tepat + verifikasi 90 m</span>
+                  <div className="text-[12.5px] text-[#334155] mt-1">
+                    Tiang sekitar normal; dugaan gangguan: <strong>Baterai melemah</strong> (F2).
+                  </div>
+                </div>
+
+                <div
+                  className={`rounded-lg border p-3 transition-colors ${
+                    activeStep.key === "siapkan"
+                      ? "bg-[#FFF8E7] border-[#FEB124] ring-2 ring-[#FEB124]/40"
+                      : "bg-[#F8FAFC] border-[#DCE3EC] opacity-75"
+                  }`}
+                >
+                  <div className="text-[11.5px] font-semibold text-[#062D5B]">
+                    3. Lokasi &amp; Daftar Suku Cadang
+                  </div>
+                  <div className="text-[12.5px] text-[#334155] mt-1">
+                    Jl. Slamet Riyadi Sukoharjo · Bawa baterai LFP 25,6 V 40 Ah dan konektor BMS.
+                  </div>
+                </div>
+
+                <div
+                  className={`rounded-lg border p-3 transition-colors ${
+                    activeStep.key === "cek"
+                      ? "bg-[#FFF8E7] border-[#FEB124] ring-2 ring-[#FEB124]/40"
+                      : "bg-[#F8FAFC] border-[#DCE3EC] opacity-75"
+                  }`}
+                >
+                  <div className="text-[11.5px] font-semibold text-[#062D5B]">
+                    4. Cek Sensor Setelah Selesai
+                  </div>
+                  <div className="text-[12.5px] text-[#334155] mt-1">
+                    Status tiang kembali Normal (26,4 V) sebelum tugas teknisi dan aduan ditutup.
                   </div>
                 </div>
               </div>
 
-              <div className="pt-4 mt-4 border-t border-[#DCE3EC] flex items-center justify-between">
-                <span className="text-[11.5px] text-[#5B6B7F]">
-                  {stats.openCitizenReports} aduan warga terbuka dalam basis data demo
+              <div className="flex flex-wrap items-center justify-between gap-2 text-[12px] text-[#5B6B7F] pt-2 border-t border-[#DCE3EC]">
+                <span>
+                  {stats.openCitizenReports} aduan warga terbuka di basis data contoh
                 </span>
                 <Link
                   href="/work-orders"
-                  className="text-[12.5px] font-semibold text-[#062D5B] hover:underline"
+                  className="font-semibold text-[#062D5B] hover:underline"
                 >
-                  Lihat Triase →
+                  Lihat tugas teknisi &amp; daftar suku cadang →
                 </Link>
               </div>
             </div>

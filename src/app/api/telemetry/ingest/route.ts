@@ -7,6 +7,10 @@ export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
   try {
+    if (process.env.REKASURYA_DEMO_ONLY === "1") {
+      return jsonErr("Pratinjau menerima data sintetis melalui Simulator.", 403, "DEMO_ONLY");
+    }
+
     const requiredKey = process.env.REKASURYA_INGEST_KEY;
     if (requiredKey && requiredKey.trim().length > 0) {
       const provided = req.headers.get("x-rekasurya-ingest-key");

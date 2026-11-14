@@ -88,9 +88,10 @@ export default function RekasuryaPublicHomePage() {
   const auditIntegrity = verifyAuditChain(db);
   const energySummary = calculateEnergyAndSavings(DEFAULT_ENERGY_INPUT);
 
-  const aiAdapterMode = process.env.REKASURYA_AI_SERVICE_URL
-    ? "EXTERNAL_POC_ASTRA"
-    : "MOCK_EWMA_DETERMINISTIC";
+  const aiAdapterMode =
+    process.env.REKASURYA_DEMO_ONLY !== "1" && process.env.REKASURYA_AI_SERVICE_URL
+      ? "EXTERNAL_POC_ASTRA"
+      : "MOCK_EWMA_DETERMINISTIC";
 
   // Pilih maks 4 perangkat representatif untuk inspektor node interaktif (prioritas gangguan + normal pembanding)
   const faultSamples = devices.filter((d) => d.status !== "NORMAL").slice(0, 3);
@@ -98,6 +99,13 @@ export default function RekasuryaPublicHomePage() {
   const sampleDevices = normalSample
     ? [...faultSamples, normalSample].slice(0, 4)
     : devices.slice(0, 4);
+
+  // Pastikan daftar pratinjau menyertakan minimal 1 tiang Normal di baris teratas
+  // diikuti gangguan paling mendesak agar simulasi di homepage langsung terlihat
+  const topFaultPreview = devices.filter((d) => d.status !== "NORMAL").slice(0, 4);
+  const previewDevices = normalSample
+    ? [normalSample, ...topFaultPreview].slice(0, 5)
+    : devices.slice(0, 5);
 
   const leadWorkOrder = openWorkOrders[0] ?? null;
   const leadWorkOrderParts = safeParseParts(leadWorkOrder?.parts_checklist_json);
@@ -114,11 +122,7 @@ export default function RekasuryaPublicHomePage() {
 
   return (
     <div className="min-h-screen bg-[#F4F6F9] text-[#0B192C] overflow-x-clip">
-      <LandingNav
-        totalDevices={stats.totalDevices}
-        activeFaults={stats.activeFaults}
-        isDemoSimulation={true}
-      />
+      <LandingNav />
 
       <main>
         <HeroAndConvergence
@@ -132,7 +136,7 @@ export default function RekasuryaPublicHomePage() {
         <ConsolePreviewAndFlow
           stats={stats}
           corridors={corridors}
-          priorityDevices={devices.slice(0, 5)}
+          priorityDevices={previewDevices}
           leadWorkOrder={leadWorkOrder}
           leadWorkOrderParts={leadWorkOrderParts}
         />

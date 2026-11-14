@@ -12,7 +12,7 @@ import {
   WorkOrderStatusBadge,
 } from "@/components/StatusBadges";
 import { EmptyState, PageSkeleton } from "@/components/UiPrimitives";
-import { FAULT_FAMILY_LABEL, ROLE_META, formatIdr, formatNum, formatWibTime } from "@/lib/format";
+import { FAULT_FAMILY_PLAIN_LABEL, ROLE_META, formatIdr, formatNum, formatWibTime } from "@/lib/format";
 import type {
   CorridorRecord,
   DeviceRecord,
@@ -139,24 +139,26 @@ export function ConsoleOverview() {
 
   return (
     <div className="space-y-5 min-w-0">
-      {/* Command Banner Navy (Prioritas Visual Tinggi — Referensi Struktur Konsol) */}
+      {/* Banner Ringkasan Utama */}
       <section className="rounded-xl bg-[#062D5B] text-white border border-[#041E3E] overflow-hidden shadow-[0_8px_24px_-12px_rgba(4,30,62,0.45)]">
         <div className="p-5 sm:p-6 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 border-b border-white/12">
           <div className="space-y-1.5 min-w-0">
-            <div className="flex flex-wrap items-center gap-2 text-[11px]">
-              <span className="font-mono font-semibold text-[#FEB124] uppercase tracking-wider">
+            <div className="flex flex-wrap items-center gap-2 text-[12px]">
+              <span className="font-semibold text-[#FEB124]">
                 {ROLE_META[role].label}
               </span>
               <span className="text-white/35">·</span>
-              <span className="font-mono text-[#CBD8EA] tabular-nums">
-                Pembaruan {formatWibTime(lastFetchedIso)} · Uptime 30h {formatNum(data.stats.avgUptime30dPct, 1)}%
+              <span className="text-[#CBD8EA] tabular-nums">
+                Diperbarui {formatWibTime(lastFetchedIso)} · Kesiapan 30 hari{" "}
+                {formatNum(data.stats.avgUptime30dPct, 1)}%
               </span>
             </div>
             <h1 className="text-[22px] sm:text-[26px] font-semibold tracking-tight text-white leading-tight">
-              Pusat Komando Operasi Armada PJUTS
+              Konsol Pemantauan Tiang &amp; Persiapan Teknisi
             </h1>
-            <p className="text-[13px] text-[#CBD8EA] max-w-2xl leading-relaxed">
-              Prioritas gangguan, kondisi koridor Solo Raya, dan antrean regu sky-lift berdasarkan telemetri simulasi tiga kanal.
+            <p className="text-[13.5px] text-[#CBD8EA] max-w-2xl leading-relaxed">
+              Pantau tiang tenaga surya di 5 koridor contoh Solo Raya, lihat gangguan paling
+              mendesak, dan siapkan lokasi serta daftar suku cadang sebelum teknisi berangkat.
             </p>
           </div>
 
@@ -183,19 +185,19 @@ export function ConsoleOverview() {
               Lihat Semua {data.stats.totalDevices} Tiang
             </Link>
             <Link href="/simulator" className="ops-btn-amber px-3.5 py-1.5 text-[12px]">
-              Uji Injeksi Telemetri
+              Coba Skenario Gangguan
             </Link>
           </div>
         </div>
 
-        {/* Strip 5 Metrik Utama di Dalam Command Banner Navy */}
+        {/* Strip 5 Metrik Utama */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 divide-y sm:divide-y-0 sm:divide-x divide-white/10 bg-[#041E3E]/55">
           {[
             {
               id: "total",
-              label: "Total Perangkat",
+              label: "Tiang Terpantau (Simulasi)",
               value: data.stats.totalDevices,
-              detail: "5 koridor aktif Solo Raya",
+              detail: "5 koridor contoh Solo Raya",
               valColor: "text-white",
               onClick: () => setAttentionStatusFilter("ALL"),
               active: attentionStatusFilter === "ALL",
@@ -204,14 +206,14 @@ export function ConsoleOverview() {
               id: "normal",
               label: "Beroperasi Normal",
               value: data.stats.normalDevices,
-              detail: `${normalRatio}% dari armada`,
+              detail: `${normalRatio}% dari seluruh tiang`,
               valColor: "text-[#86EFAC]",
             },
             {
               id: "fault",
-              label: "Mengalami Gangguan",
+              label: "Perlu Diperiksa",
               value: data.stats.activeFaults,
-              detail: "Terlokalisasi F1–F6 (klik filter)",
+              detail: "Klik untuk saring gangguan",
               valColor: data.stats.activeFaults > 0 ? "text-[#FFD585]" : "text-[#86EFAC]",
               onClick: () =>
                 setAttentionStatusFilter((prev) => (prev === "FAULT" ? "ALL" : "FAULT")),
@@ -219,9 +221,9 @@ export function ConsoleOverview() {
             },
             {
               id: "tamper",
-              label: "Alarm Sabotase Kritis",
+              label: "Kondisi Darurat",
               value: data.stats.tamperCritical,
-              detail: "Prioritas darurat F6 / 18650",
+              detail: "Indikasi kotak dibuka / dicuri",
               valColor: data.stats.tamperCritical > 0 ? "text-[#FDA4AF]" : "text-[#86EFAC]",
               onClick: () =>
                 setAttentionStatusFilter((prev) =>
@@ -231,21 +233,21 @@ export function ConsoleOverview() {
             },
             {
               id: "wo",
-              label: "Work Order Terbuka",
-              value: `${data.stats.openWorkOrders} Tiket`,
+              label: "Tugas Teknisi Terbuka",
+              value: `${data.stats.openWorkOrders} Tugas`,
               detail: `${data.stats.openCitizenReports} aduan warga terbuka`,
               valColor: "text-[#FEB124]",
             },
           ].map((item) => {
             const inner = (
               <div className="px-4 py-3 text-left flex flex-col gap-0.5">
-                <div className="text-[11px] font-semibold uppercase tracking-wider text-[#9FB3CE]">
+                <div className="text-[11.5px] font-medium text-[#CBD8EA]">
                   {item.label}
                 </div>
                 <div className={`text-[21px] font-semibold font-mono tabular-nums leading-snug ${item.valColor}`}>
                   {item.value}
                 </div>
-                <div className="text-[11px] text-[#CBD8EA] truncate">{item.detail}</div>
+                <div className="text-[11px] text-[#A8BCD6] truncate">{item.detail}</div>
               </div>
             );
 
@@ -268,15 +270,15 @@ export function ConsoleOverview() {
         </div>
       </section>
 
-      {/* Area Operasional Utama: Tabel Perangkat Membutuhkan Perhatian Segera */}
+      {/* Tabel Gangguan Paling Mendesak */}
       <section className="ops-card overflow-hidden">
         <div className="px-4 py-3 border-b border-[#DCE3EC] flex flex-wrap items-center justify-between gap-2">
           <div>
-            <h2 className="text-[14px] font-semibold text-[#062D5B]">
-              Perangkat Membutuhkan Perhatian Segera ({attentionDevices.length})
+            <h2 className="text-[15px] font-semibold text-[#062D5B]">
+              Gangguan Paling Mendesak ({attentionDevices.length})
             </h2>
-            <p className="text-[12px] text-[#5B6B7F]">
-              Diurutkan berdasarkan tingkat urgensi (Sabotase F6 → Gangguan F2–F5 → Peringatan EWMA F1) untuk tindakan langsung operator.
+            <p className="text-[12.5px] text-[#5B6B7F]">
+              Diurutkan dari kondisi Darurat hingga Perlu diperiksa agar penanganan bisa langsung diprioritaskan.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -286,16 +288,16 @@ export function ConsoleOverview() {
               onChange={(e) => setAttentionStatusFilter(e.target.value)}
               className="ops-input px-2.5 py-1 text-[12px] cursor-pointer"
             >
-              <option value="ALL">Semua Gangguan ({data.stats.activeFaults})</option>
-              <option value="TAMPER_CRITICAL">Sabotase Kritis</option>
-              <option value="FAULT">Gangguan Aktif (F2–F5)</option>
-              <option value="WARNING_EWMA">Peringatan EWMA (F1)</option>
+              <option value="ALL">Semua Kondisi ({data.stats.activeFaults})</option>
+              <option value="TAMPER_CRITICAL">Darurat (Kotak Dibuka)</option>
+              <option value="FAULT">Perlu Diperiksa (F2–F5)</option>
+              <option value="WARNING_EWMA">Perlu Diperiksa (Panel/Shading F1)</option>
             </select>
             <Link
               href="/alerts"
               className="text-[12px] font-semibold text-[#062D5B] hover:text-[#093B75] hover:underline"
             >
-              Semua Log Alarm →
+              Lihat Daftar Gangguan →
             </Link>
           </div>
         </div>
@@ -303,11 +305,11 @@ export function ConsoleOverview() {
         {attentionDevices.length === 0 ? (
           <div className="p-4">
             <EmptyState
-              title="Tidak ada perangkat bermasalah pada filter saat ini"
-              description="Seluruh tiang pada koridor/status yang dipilih berada pada parameter operasi normal. Gunakan Simulator Telemetri untuk menguji deteksi gangguan."
+              title="Tidak ada tiang bermasalah pada filter saat ini"
+              description="Seluruh tiang pada wilayah atau status yang dipilih sedang Normal. Gunakan Simulator Gangguan untuk mencoba skenario baru."
               action={
                 <Link href="/devices" className="ops-btn-secondary px-3 py-1.5 text-xs inline-block">
-                  Buka Inventaris Lengkap (18 Tiang)
+                  Lihat Semua Tiang (18 Tiang)
                 </Link>
               }
             />
@@ -316,13 +318,13 @@ export function ConsoleOverview() {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-[13px]">
               <thead>
-                <tr className="bg-[#F8FAFC] border-b border-[#DCE3EC] text-[11px] font-semibold uppercase tracking-wider text-[#5B6B7F]">
-                  <th className="py-2.5 px-4">ID &amp; Lokasi Tiang</th>
-                  <th className="py-2.5 px-3">Status</th>
-                  <th className="py-2.5 px-3">Kategori Gangguan</th>
-                  <th className="py-2.5 px-3">Bukti Telemetri</th>
+                <tr className="bg-[#F8FAFC] border-b border-[#DCE3EC] text-[11.5px] font-semibold text-[#5B6B7F]">
+                  <th className="py-2.5 px-4">Tiang &amp; Lokasi</th>
+                  <th className="py-2.5 px-3">Status &amp; Tiang Sekitar</th>
+                  <th className="py-2.5 px-3">Dugaan Penyebab</th>
+                  <th className="py-2.5 px-3">Pembacaan Sensor</th>
                   <th className="py-2.5 px-3">Terakhir Terpantau</th>
-                  <th className="py-2.5 px-4 text-right">Tindakan Langsung</th>
+                  <th className="py-2.5 px-4 text-right">Tindakan</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#DCE3EC]">
@@ -352,14 +354,14 @@ export function ConsoleOverview() {
                         </div>
                       </td>
                       <td className="py-3 px-3 align-top space-y-1">
-                        <FaultFamilyBadge family={dev.fault_family} subCode={dev.fault_sub_code} />
-                        <div className="text-[11px] text-[#5B6B7F]">
-                          {FAULT_FAMILY_LABEL[dev.fault_family] ?? dev.fault_family}
+                        <div className="font-semibold text-[#0B192C]">
+                          {FAULT_FAMILY_PLAIN_LABEL[dev.fault_family] ?? dev.fault_family}
                         </div>
+                        <FaultFamilyBadge family={dev.fault_family} subCode={dev.fault_sub_code} />
                       </td>
                       <td className="py-3 px-3 align-top font-mono text-[12px] tabular-nums">
                         <div className="text-[#0B192C]">
-                          EWMA Z ={" "}
+                          Residu Z ={" "}
                           <span
                             className={
                               dev.ewma_z < dev.ewma_lcl
@@ -371,12 +373,12 @@ export function ConsoleOverview() {
                           </span>
                         </div>
                         <div className="text-[11px] text-[#5B6B7F]">
-                          Batt {formatNum(dev.batt_v)} V · SoC {formatNum(dev.soc_pct, 0)}% · PV{" "}
+                          Baterai {formatNum(dev.batt_v)} V · Sisa {formatNum(dev.soc_pct, 0)}% · PV{" "}
                           {formatNum(dev.pv_p)} W
                         </div>
                         {dev.on_backup_cell === 1 && (
                           <div className="text-[11px] text-[#9D174D] font-semibold">
-                            Berjalan di sel 18650 ({formatNum(dev.backup_cell_v, 2)} V)
+                            Memakai baterai cadangan ({formatNum(dev.backup_cell_v, 2)} V)
                           </div>
                         )}
                       </td>
@@ -392,7 +394,7 @@ export function ConsoleOverview() {
                             href={`/devices/${dev.id}`}
                             className="ops-btn-primary px-2.5 py-1 text-[11px]"
                           >
-                            Diagnostik
+                            Detail Tiang
                           </Link>
                           <Link
                             href={
@@ -402,7 +404,7 @@ export function ConsoleOverview() {
                             }
                             className="ops-btn-secondary px-2.5 py-1 text-[11px]"
                           >
-                            {linkedWo ? linkedWo.id : "Work Order"}
+                            {linkedWo ? linkedWo.id : "Tugas Teknisi"}
                           </Link>
                         </div>
                       </td>
@@ -489,41 +491,41 @@ export function ConsoleOverview() {
           </div>
         </section>
 
-        {/* Antrean Work Order Aktif */}
+        {/* Daftar Tugas Teknisi & Suku Cadang */}
         <section className="xl:col-span-7 min-w-0 ops-card overflow-hidden">
           <div className="px-4 py-3 border-b border-[#DCE3EC] flex flex-wrap items-center justify-between gap-2">
             <div>
-              <h2 className="text-[14px] font-semibold text-[#062D5B]">
-                Antrean Work Order &amp; Paket Suku Cadang ({data.openWorkOrders.length})
+              <h2 className="text-[15px] font-semibold text-[#062D5B]">
+                Tugas Teknisi &amp; Daftar Suku Cadang ({data.openWorkOrders.length})
               </h2>
               <p className="text-[12px] text-[#5B6B7F]">
-                Daftar kebutuhan komponen terpetakan F1–F6 sebelum regu sky-lift berangkat
+                Lokasi tiang, dugaan gangguan, dan suku cadang yang perlu disiapkan sebelum berangkat
               </p>
             </div>
             <Link
               href="/work-orders"
               className="ops-btn-secondary px-2.5 py-1 text-[12px]"
             >
-              Kelola Semua Tiket
+              Kelola Semua Tugas
             </Link>
           </div>
 
           {data.openWorkOrders.length === 0 ? (
             <div className="p-4">
               <EmptyState
-                title="Tidak ada Work Order terbuka"
-                description="Semua pekerjaan pemeliharaan sudah diverifikasi normal atau ditutup."
+                title="Tidak ada tugas teknisi yang terbuka"
+                description="Semua pekerjaan pemeliharaan sudah diperiksa normal atau ditutup."
               />
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse text-[12px]">
                 <thead>
-                  <tr className="bg-[#F8FAFC] border-b border-[#DCE3EC] text-[11px] font-semibold uppercase tracking-wider text-[#5B6B7F]">
-                    <th className="py-2 px-4">Tiket &amp; Tiang</th>
+                  <tr className="bg-[#F8FAFC] border-b border-[#DCE3EC] text-[11.5px] font-semibold text-[#5B6B7F]">
+                    <th className="py-2 px-4">Tugas &amp; Lokasi Tiang</th>
                     <th className="py-2 px-3">Prioritas &amp; Status</th>
                     <th className="py-2 px-3">Suku Cadang Disiapkan</th>
-                    <th className="py-2 px-4 text-right">Regu &amp; Aksi</th>
+                    <th className="py-2 px-4 text-right">Regu &amp; Tindakan</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#DCE3EC]">
@@ -558,17 +560,17 @@ export function ConsoleOverview() {
                         </td>
                         <td className="py-2.5 px-3 align-top">
                           {parts.length === 0 ? (
-                            <span className="text-[#5B6B7F]">Inspeksi visual / tanpa SKU</span>
+                            <span className="text-[#5B6B7F]">Pemeriksaan visual / tanpa ganti komponen</span>
                           ) : (
                             <div className="space-y-0.5">
                               {parts.map((p) => (
                                 <div key={p.sku} className="text-[#0B192C]">
-                                  <span className="font-mono font-semibold text-[#062D5B]">{p.sku}</span> ·{" "}
-                                  {p.name} ({p.quantity} {p.unit})
+                                  {p.name} ({p.quantity} {p.unit}) ·{" "}
+                                  <span className="font-mono text-[11px] text-[#5B6B7F]">{p.sku}</span>
                                 </div>
                               ))}
                               <div className="font-mono text-[11px] text-[#5B6B7F] tabular-nums">
-                                Est. {formatIdr(estTotal)}
+                                Perkiraan {formatIdr(estTotal)}
                               </div>
                             </div>
                           )}
@@ -580,7 +582,7 @@ export function ConsoleOverview() {
                             href={`/work-orders?highlight=${wo.id}`}
                             className="inline-block mt-1 text-[11px] font-semibold text-[#062D5B] hover:underline"
                           >
-                            Proses Tiket →
+                            Buka Tugas →
                           </Link>
                         </td>
                       </tr>
@@ -593,45 +595,45 @@ export function ConsoleOverview() {
         </section>
       </div>
 
-      {/* Ringkasan Operasi Energi & Integritas Log */}
+      {/* Ringkasan Penghematan & Log Pemeriksaan */}
       <section className="ops-card p-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div className="space-y-1">
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-[14px] font-semibold text-[#062D5B]">
-              Ringkasan Operasi Energi &amp; Keandalan Armada
+              Ringkasan Penghematan &amp; Keutuhan Log Pemeriksaan
             </h2>
-            <span className="px-2 py-0.5 text-[10px] font-mono rounded bg-[#EDF1F6] border border-[#DCE3EC] text-[#334155]">
-              INTEGRITAS AUDIT SHA-256: {data.auditIntegrity.valid ? "UTUH" : "RUSAK"} ({data.auditIntegrity.totalEntries} entri)
+            <span className="text-[12px] text-[#5B6B7F]">
+              · Log SHA-256 {data.auditIntegrity.valid ? "utuh" : "perlu tinjau"} ({data.auditIntegrity.totalEntries} catatan)
             </span>
           </div>
           <p className="text-[12px] text-[#5B6B7F]">
-            Agregasi telemetri simulasi 18 tiang dipisahkan secara eksplisit dari proyeksi model proposal 2-aliran.
+            Data pembacaan tiang berasal dari simulasi 18 tiang contoh; angka penghematan tahunan adalah estimasi kalkulator berdasarkan asumsi tarif &amp; perawatan.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-6 font-mono text-[12px] tabular-nums">
           <div>
-            <div className="text-[11px] font-sans text-[#5B6B7F]">Total Daya PV (Simulasi)</div>
+            <div className="text-[11px] font-sans text-[#5B6B7F]">Daya Panel (Simulasi)</div>
             <div className="text-[15px] font-semibold text-[#0B192C]">
               {formatNum(fleetTelemetryAgg.totalPvW, 1)} W
             </div>
           </div>
           <div>
-            <div className="text-[11px] font-sans text-[#5B6B7F]">Rata-Rata SoC Baterai</div>
+            <div className="text-[11px] font-sans text-[#5B6B7F]">Rata-Rata Baterai</div>
             <div className="text-[15px] font-semibold text-[#15803D]">
               {formatNum(fleetTelemetryAgg.avgSoc, 1)}%
             </div>
           </div>
           <div>
             <div className="text-[11px] font-sans text-[#5B6B7F]">
-              Proyeksi Manfaat/Thn (Asumsi Proposal)
+              Estimasi Penghematan/Tahun
             </div>
             <div className="text-[15px] font-semibold text-[#062D5B]">
               {formatIdr(data.stats.annualSavingsEstimatedIdr)}
             </div>
           </div>
           <Link href="/energy" className="ops-btn-secondary px-3 py-1.5 font-sans text-[12px]">
-            Buka Analitik Energi →
+            Buka Kalkulator Penghematan →
           </Link>
         </div>
       </section>

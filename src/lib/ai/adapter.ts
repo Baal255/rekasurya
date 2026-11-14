@@ -230,7 +230,9 @@ export async function runAiInference(
     .digest("hex")
     .slice(0, 16);
 
-  const externalUrl = process.env.REKASURYA_AI_SERVICE_URL;
+  const externalUrl = process.env.REKASURYA_DEMO_ONLY === "1"
+    ? undefined
+    : process.env.REKASURYA_AI_SERVICE_URL;
   if (externalUrl && externalUrl.trim().length > 0) {
     try {
       const controller = new AbortController();

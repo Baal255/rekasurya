@@ -13,7 +13,7 @@ import { formatIdr, formatNum } from "@/lib/format";
 import {
   SIMULATION_SCENARIOS,
   type SimulationScenarioId,
-} from "@/lib/simulator/engine";
+} from "@/lib/simulator/scenarios";
 import type { DeviceRecord, WorkOrderRecord } from "@/lib/types";
 import type { TelemetryInferenceRequest, TelemetryInferenceResponse } from "@/lib/ai/contract";
 
@@ -83,11 +83,11 @@ export default function FaultSimulatorPage() {
   return (
     <div className="space-y-5">
       <PageHeader
-        title="Laboratorium Simulator Injeksi Telemetri"
-        subtitle="Uji respons deteksi EWMA 3-kanal (INA228 + INA226), korelasi anti-false-alarm koridor, serta pembuatan Work Order otomatis pada 8 skenario fisika perangkat."
+        title="Simulator Skenario Gangguan Tiang"
+        subtitle="Coba berbagai skenario pada tiang contoh—seperti panel tertutup pohon, baterai melemah, atau cuaca mendung—dan lihat bagaimana dugaan penyebab serta daftar suku cadang otomatis disiapkan."
         meta={
-          <span className="px-2 py-0.5 text-[11px] font-mono rounded-md bg-[#FEF3C7] text-[#92400E] border border-[#FCD34D]">
-            DATA SIMULASI FISIKA PERANGKAT
+          <span className="text-[12px] text-[#5B6B7F]">
+            Lingkungan uji simulasi · 18 tiang contoh Solo Raya
           </span>
         }
         actions={
@@ -101,7 +101,7 @@ export default function FaultSimulatorPage() {
             }}
             className="ops-btn-secondary px-3 py-1.5 text-[12px] cursor-pointer disabled:opacity-50"
           >
-            {isResetting ? "Mereset..." : "Reset Seluruh Armada ke Snapshot Awal"}
+            {isResetting ? "Mengembalikan..." : "Ulangi Data Awal Simulasi"}
           </button>
         }
       />
@@ -111,16 +111,16 @@ export default function FaultSimulatorPage() {
         <section className="lg:col-span-5 ops-card p-4 space-y-4">
           <div>
             <h2 className="text-[14px] font-semibold text-[#0B192C]">
-              1. Konfigurasi Target &amp; Skenario Uji
+              1. Pilih Tiang &amp; Skenario Gangguan
             </h2>
             <p className="text-[12px] text-[#5B6B7F]">
-              Pilih tiang target dan kondisi fisika yang ingin disuntikkan ke pipeline backend.
+              Pilih salah satu tiang dan skenario kondisi lapangan untuk melihat respons konsol.
             </p>
           </div>
 
           <div className="text-[12px]">
             <label htmlFor="sim-device" className="block text-[#334155] font-medium mb-1">
-              Target Tiang Uji
+              Tiang yang Diuji
             </label>
             <select
               id="sim-device"
@@ -138,7 +138,7 @@ export default function FaultSimulatorPage() {
 
           <div className="space-y-1.5">
             <div className="text-[12px] font-medium text-[#334155]">
-              Pilih Kondisi Skenario ({SIMULATION_SCENARIOS.length} Skenario):
+              Pilih Skenario ({SIMULATION_SCENARIOS.length} Skenario):
             </div>
             <div className="divide-y divide-[#DCE3EC] border border-[#DCE3EC] rounded-md max-h-[320px] overflow-y-auto">
               {SIMULATION_SCENARIOS.map((sc) => {
@@ -160,7 +160,7 @@ export default function FaultSimulatorPage() {
                       >
                         {sc.label}
                       </span>
-                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#F1F5F9] text-[#334155]">
+                      <span className="text-[10.5px] font-mono px-1.5 py-0.5 rounded bg-[#F1F5F9] text-[#334155]">
                         {sc.defaultTimeOfDay} · {sc.expectedFaultFamily}
                       </span>
                     </div>
@@ -179,9 +179,9 @@ export default function FaultSimulatorPage() {
             type="button"
             disabled={busy || !selectedDeviceId}
             onClick={runInjection}
-            className="ops-btn-amber w-full py-2.5 text-[12px] cursor-pointer disabled:opacity-50"
+            className="ops-btn-amber w-full py-2.5 text-[12.5px] cursor-pointer disabled:opacity-50"
           >
-            {busy ? "Mengirim Paket Telemetri..." : `Suntikkan Telemetri: ${activeScenarioMeta.id}`}
+            {busy ? "Menjalankan Simulasi..." : `Jalankan Skenario: ${activeScenarioMeta.label}`}
           </button>
 
           {error && (
@@ -196,23 +196,24 @@ export default function FaultSimulatorPage() {
           {!output ? (
             <div className="ops-card p-6 space-y-3 text-[13px] text-[#334155]">
               <div className="text-[15px] font-semibold text-[#0B192C]">
-                Siap Menguji Skenario Injeksi Telemetri
+                Siap Menguji Skenario Gangguan
               </div>
               <p>
-                Klik tombol <strong>Suntikkan Telemetri</strong> di sebelah kiri untuk memverifikasi perilaku end-to-end:
+                Pilih skenario lalu tekan tombol <strong>Jalankan Skenario</strong> di sebelah kiri
+                untuk melihat hasil perubahan pada tiang dan tugas teknisi:
               </p>
-              <ul className="list-disc pl-5 space-y-1.5 text-[12px]">
+              <ul className="list-disc pl-5 space-y-1.5 text-[12.5px]">
                 <li>
-                  Perbandingan pembacaan 3-kanal (PV INA228, Baterai INA226, Beban INA226) sebelum dan sesudah injeksi.
+                  Perbandingan pengukuran panel surya, baterai, dan lampu LED sebelum dan sesudah skenario dijalankan.
                 </li>
                 <li>
-                  Validasi skema JSON <span className="font-mono text-[#062D5B]">AI-CONTRACT-v1.0.0</span> dan hasil baseline deterministik EWMA.
+                  Pembandingan daya panel terhadap tiang sekitar untuk membedakan cuaca mendung dari gangguan lokal.
                 </li>
                 <li>
-                  Pembuktian bahwa <span className="font-mono text-[#062D5B]">WEATHER_CORRIDOR_CLOUDY</span> mengenali mendung seruas tanpa menerbitkan Work Order palsu.
+                  Skenario mendung sekoridor (<span className="font-mono text-[#062D5B]">WEATHER_CORRIDOR_CLOUDY</span>) tidak membuat tugas teknisi palsu.
                 </li>
                 <li>
-                  Penerbitan Work Order otomatis beserta daftar suku cadang jika terjadi gangguan lokal F1–F6.
+                  Pembuatan tugas teknisi beserta lokasi dan daftar suku cadang bila terdeteksi gangguan <span className="font-mono text-[#062D5B]">F1–F6</span>.
                 </li>
               </ul>
             </div>
@@ -221,8 +222,8 @@ export default function FaultSimulatorPage() {
               <div className="ops-card p-4 space-y-3">
                 <div className="flex flex-wrap items-start justify-between gap-2 border-b border-[#DCE3EC] pb-3">
                   <div>
-                    <div className="text-[11px] font-mono text-[#062D5B] font-semibold">
-                      HASIL BASELINE EWMA DETERMINISTIK · LATENSI {output.latencyMs} ms
+                    <div className="text-[11.5px] text-[#5B6B7F]">
+                      Hasil pembandingan sensor &amp; EWMA · {output.latencyMs} ms
                     </div>
                     <h2 className="text-[16px] font-bold text-[#0B192C] mt-0.5">
                       {output.ai.title}

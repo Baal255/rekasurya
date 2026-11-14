@@ -34,5 +34,6 @@ Setiap `push` dan `pull_request` pada branch `main` menjalankan alur otomatis:
 
 ### Variabel Lingkungan Opsional Produksi
 
+- `REKASURYA_DEMO_ONLY=1` untuk pratinjau sintetis. Simulator dan alur tiket demo tetap tersedia. Ingest eksternal ditutup dan adaptor memakai inferensi lokal.
 - `REKASURYA_AI_SERVICE_URL`: URL dasar layanan PoC Python AI eksternal (opsional; jika kosong, sistem berjalan aman memakai adaptor `MOCK_EWMA_DETERMINISTIC`).
 - `REKASURYA_INGEST_KEY`: Token header `x-rekasurya-ingest-key` untuk mengamankan `POST /api/telemetry/ingest` apabila menerima push gateway MQTT nyata.
