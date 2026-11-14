@@ -126,7 +126,7 @@ public:
       // Lampu tetap menyala pada siang terik
       if (t.loadCurrentA > 0.25f && t.lux > 10000.0f) {
         res.family = FaultFamily::F4_LED_DRIVER;
-        res.subCode = FaultSubCode::F4_03_DAYLIGHT_RELAY_STUCK;
+        res.subCode = FaultSubCode::F4_03_DAYLIGHT_DRIVER_STUCK;
         res.confidence = 0.94f;
         return res;
       }
